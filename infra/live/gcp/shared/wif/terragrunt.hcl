@@ -17,6 +17,6 @@ dependencies {
 }
 
 inputs = {
-  project_id = include.cloud.locals.project_id
+  project_id        = include.cloud.locals.project_id
   github_repository = include.root.locals.github_repository
 }

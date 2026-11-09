@@ -25,6 +25,7 @@ env:
 jobs:
   apply:
     name: Apply ${{ matrix.cloud }}
+    if: vars.GCP_PROJECT_ID != ''  # skip cleanly until docs/SETUP.md / bootstrap/ has been run
     runs-on: ubuntu-latest
     timeout-minutes: 45
     concurrency:
@@ -42,3 +43,9 @@ jobs:
       - name: terragrunt run --all apply
         working-directory: infra/live/${{ matrix.cloud }}
         run: terragrunt run --all -- apply -no-color # run --all adds -auto-approve
+
+  not-configured:
+    if: vars.GCP_PROJECT_ID == ''
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "::notice::Cloud access isn't configured yet (no GCP_PROJECT_ID repo variable). Run bootstrap/ or docs/SETUP.md; skipping."

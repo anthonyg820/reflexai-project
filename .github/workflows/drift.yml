@@ -25,6 +25,7 @@ env:
 jobs:
   drift:
     name: Drift ${{ matrix.cloud }}
+    if: vars.GCP_PROJECT_ID != ''  # skip cleanly until docs/SETUP.md / bootstrap/ has been run
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:

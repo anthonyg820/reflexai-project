@@ -13,7 +13,7 @@ TERRAFORM_VERSION  ?= 1.13.4
 TERRAGRUNT_VERSION ?= 0.99.5
 ACTIONLINT_VERSION ?= 1.7.7
 SHELLCHECK_VERSION ?= 0.10.0
-CRANE_VERSION      ?= 0.20.8
+CRANE_VERSION      ?= 0.21.7
 NODE_MAJOR         := $(shell cat .nvmrc)
 
 # Repo-local tool dir, so nothing is installed system-wide.
@@ -282,7 +282,7 @@ tf-fmt-check: ## Check formatting without changing files (CI does this)
 
 .PHONY: tf-validate
 tf-validate: ## terraform validate every module (no cloud credentials needed)
-	@for m in infra/modules/*/; do echo "→ $$m"; \
+	@mkdir -p .tools/tf-plugin-cache; export TF_PLUGIN_CACHE_DIR=$(CURDIR)/.tools/tf-plugin-cache; for m in infra/modules/*/; do echo "→ $$m"; \
 	  (cd $$m && terraform init -backend=false -input=false >/dev/null && terraform validate -no-color) || exit 1; done
 
 .PHONY: tf-bootstrap

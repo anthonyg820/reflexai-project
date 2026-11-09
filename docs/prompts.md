@@ -96,3 +96,15 @@ Are the local grafana dashboards already set and configured to collect and displ
 ### 15. Sun 2026-11-08 20:38
 
 Yes please
+
+---
+
+### 16. Sun 2026-11-08 20:55
+
+Let's begin Monday's work now so we can get a bit ahead of schedule.
+
+---
+
+### 17. Sun 2026-11-08 21:11
+
+Check your github connection now

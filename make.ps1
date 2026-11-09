@@ -54,7 +54,7 @@ $TerraformVersion  = '1.13.4'
 $TerragruntVersion = '0.99.5'
 $ActionlintVersion = '1.7.7'
 $ShellcheckVersion = '0.10.0'
-$CraneVersion      = '0.20.8'
+$CraneVersion      = '0.21.7'
 $NodeMajor         = [int](Get-Content (Join-Path $PSScriptRoot '.nvmrc') -Raw).Trim()
 
 # Repo-local tool dir, so nothing is installed system-wide.
@@ -137,7 +137,11 @@ function Assert-TfEnv {
 function Invoke-Terragrunt([string[]] $TgArgs) {
     $dir = Assert-TfEnv
     Push-Location $dir
-    try { Exec { & terragrunt @TgArgs } }
+    # Called directly (not through Exec) so Terragrunt's y/n prompts reach the console.
+    try {
+        & terragrunt @TgArgs
+        if ($LASTEXITCODE -ne 0) { throw "terragrunt exited with code $LASTEXITCODE" }
+    }
     finally { Pop-Location }
 }
 
@@ -154,7 +158,9 @@ function Install-Tool([string] $Name, [scriptblock] $Installer) {
     Write-Host "  installing $Name"
     $tmp = Join-Path ([IO.Path]::GetTempPath()) ("rehearse-" + [guid]::NewGuid())
     New-Item -ItemType Directory -Path $tmp | Out-Null
+    # One failed download shouldn't stop the rest (or the winget installs).
     try { & $Installer $tmp $exe }
+    catch { Write-Warning "could not install ${Name}: $($_.Exception.Message)" }
     finally { Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue }
 }
 
@@ -433,6 +439,9 @@ Add-Command 'tf-fmt-check' 'Infrastructure (Terraform + Terragrunt)' 'Check form
     Push-Location infra/live; try { Exec { terragrunt hcl fmt --check } } finally { Pop-Location }
 }
 Add-Command 'tf-validate' 'Infrastructure (Terraform + Terragrunt)' 'terraform validate every module (no cloud credentials needed)' {
+    # Share provider downloads between modules (otherwise ~150 MB per module).
+    $env:TF_PLUGIN_CACHE_DIR = Join-Path $PSScriptRoot '.tools\tf-plugin-cache'
+    New-Item -ItemType Directory -Force -Path $env:TF_PLUGIN_CACHE_DIR | Out-Null
     foreach ($m in Get-ChildItem infra/modules -Directory) {
         Write-Step "-> infra/modules/$($m.Name)"
         Push-Location $m.FullName

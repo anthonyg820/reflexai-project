@@ -21,6 +21,7 @@ permissions:
 jobs:
   build:
     name: Build ${{ matrix.image }}
+    if: vars.GCP_PROJECT_ID != ''  # skip cleanly until docs/SETUP.md / bootstrap/ has been run
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -104,3 +105,9 @@ jobs:
     with:
       environment: dev
       version: ${{ github.sha }}
+
+  not-configured:
+    if: vars.GCP_PROJECT_ID == ''
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "::notice::Cloud access isn't configured yet (no GCP_PROJECT_ID repo variable). Run bootstrap/ or docs/SETUP.md; skipping."

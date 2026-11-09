@@ -49,6 +49,7 @@ jobs:
 
   plan:
     name: Plan ${{ matrix.cloud }}
+    if: vars.GCP_PROJECT_ID != ''  # skip cleanly until docs/SETUP.md / bootstrap/ has been run
     needs: fmt
     runs-on: ubuntu-latest
     timeout-minutes: 30

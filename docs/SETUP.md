@@ -5,7 +5,7 @@ tier), and the `gcloud`, `aws`, `terraform` (≥ 1.10) and `terragrunt` (≥ 0.9
 Everything below stays inside free tiers except ECS Fargate and the ALB
 (about $2.50–3/day with both AWS environments up).
 
-On Windows, swap `make X CLOUD=gcp` for `.\make X -Cloud gcp`, and set variables with
+**On Windows, the double-click launchers in `bootstrap/` do all of this for you; see `bootstrap/README.md`.** Otherwise swap `make X CLOUD=gcp` for `.\make X -Cloud gcp`, and set variables with
 `$env:GCP_PROJECT_ID = '...'` instead of `export`.
 
 ## 1. Shell variables

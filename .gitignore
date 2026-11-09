@@ -18,3 +18,8 @@ crash.log
 .rendered/
 start-local.log
 start-dev.log
+bootstrap/settings.env
+bootstrap/logs/
+bootstrap/outputs/
+# Lock files belong to the Terragrunt units, not the reusable modules (created by make tf-validate)
+infra/modules/**/.terraform.lock.hcl
