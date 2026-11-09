@@ -26,7 +26,7 @@ export class AppModule implements OnApplicationShutdown {
         LoggerModule.forRoot({
           pinoHttp: {
             level: config.LOG_LEVEL,
-            autoLogging: { ignore: (req) => req.url === "/healthz" },
+            autoLogging: { ignore: (req) => req.url === "/health" },
             // Structured JSON in the cloud; the Collector ships it to Loki.
             ...(config.DEPLOY_ENV === "local" ? {} : { formatters: { level: (label: string) => ({ level: label }) } }),
           },

@@ -27,7 +27,7 @@
 |---|---|---|
 | Monorepo | pnpm workspaces + **Turborepo** | Affected-only builds and tests, which speaks to their 18-minute frontend tests. Free |
 | Frontend | **Next.js** (App Router, `output: standalone`), Tailwind | Their stack. `/api/*` is proxied to the API through Next rewrites, so it behaves the same in both clouds and needs no CORS |
-| Backend | **NestJS** + Prisma | Their stack. REST: `/scenarios`, `/sessions`, `/stats`, `/healthz` |
+| Backend | **NestJS** + Prisma | Their stack. REST: `/scenarios`, `/sessions`, `/stats`, `/health` |
 | Database | **Postgres** on **Neon** free tier, one database branch per environment (gcp-dev, gcp-uat, gcp-prod, aws-uat, aws-prod) | They're moving to Postgres. Free. Avoids Cloud SQL/RDS minimum costs |
 | Cache | Upstash Redis (free), *stretch only* | — |
 | Containers | Docker multi-stage, distroless/alpine Node 22 | — |
@@ -39,7 +39,7 @@
 | Supply chain | Trivy (image + IaC scan), Renovate (dependency PRs + automerge rules), cosign keyless signing *(stretch)* | Free |
 | Telemetry | **OpenTelemetry** SDK (`@opentelemetry/sdk-node` + auto-instrumentations in NestJS, `instrumentation.ts` in Next.js), pino logs with trace IDs | Their pipeline is OTel → Datadog |
 | Telemetry backend | **OTel Collector** sidecar → **Grafana Cloud free tier** (Tempo traces, Loki logs, Mimir metrics, Grafana dashboards). Locally: `grafana/otel-lgtm` container (fully OSS) | Free. All OSS components. Swapping the exporter to Datadog would be a one-line Collector change |
-| Synthetics | Grafana Cloud Synthetic Monitoring (free tier) on `/healthz` in each cloud | Mirrors Datadog synthetics |
+| Synthetics | Grafana Cloud Synthetic Monitoring (free tier) on `/health` in each cloud | Mirrors Datadog synthetics |
 | Notifications | Slack incoming webhook *(optional)* | Free |
 
 ---

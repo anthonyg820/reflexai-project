@@ -5,8 +5,8 @@ source "$(dirname "$0")/lib.sh"
 url="${1%/}" service="$2" version="$3"
 
 for attempt in $(seq 1 10); do
-  if health="$(curl -fsS --max-time 5 "$url/healthz")"; then break; fi
-  [[ $attempt == 10 ]] && die "$service: $url/healthz never became healthy"
+  if health="$(curl -fsS --max-time 5 "$url/health")"; then break; fi
+  [[ $attempt == 10 ]] && die "$service: $url/health never became healthy"
   sleep 3
 done
 running="$(jq -r .version <<<"$health")"

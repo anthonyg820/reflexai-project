@@ -144,7 +144,7 @@ up: ## Run the full stack in Docker: web :3000, api :8080, Grafana :3001
 	$(COMPOSE) build web
 	$(COMPOSE) up -d
 	@node scripts/grafana-import.mjs
-	@echo -e "\n  web      http://localhost:3000\n  api      http://localhost:8080/healthz\n  grafana  http://localhost:3001  (admin / admin)\n"
+	@echo -e "\n  web      http://localhost:3000\n  api      http://localhost:8080/health\n  grafana  http://localhost:3001  (admin / admin)\n"
 
 .PHONY: down
 down: ## Stop the Docker stack (keeps the database volume)
@@ -253,8 +253,8 @@ scenario-a: deps-up ## Show both behaviours locally: lazy config -> 500s, startu
 	@echo -e "\n\033[1m1) Legacy behaviour: new config, old code, lazy validation\033[0m"
 	@cd apps/api && (DEPLOY_ENV=local CLOUD_PROVIDER=local DATABASE_URL=$(LOCAL_DB) MIGRATE_ON_START=true OTEL_SDK_DISABLED=true \
 	  PORT=8099 SCORING_RUBRIC=rubric-c CONFIG_VALIDATION=lazy node --require ./dist/otel.js dist/main.js >/tmp/rehearse-scenario-a.log 2>&1 & echo $$! > /tmp/rehearse-scenario-a.pid)
-	@for _ in $$(seq 1 20); do curl -fs localhost:8099/healthz >/dev/null && break; sleep 0.5; done
-	@echo -n "   /healthz       -> "; curl -s -o /dev/null -w '%{http_code} (looks healthy, so it gets traffic)\n' localhost:8099/healthz
+	@for _ in $$(seq 1 20); do curl -fs localhost:8099/health >/dev/null && break; sleep 0.5; done
+	@echo -n "   /health       -> "; curl -s -o /dev/null -w '%{http_code} (looks healthy, so it gets traffic)\n' localhost:8099/health
 	@echo -n "   /api/stats     -> "; curl -s -o /dev/null -w '%{http_code} (every tenant gets server errors)\n' -H 'x-tenant-id: acme-crisis-line' localhost:8099/api/stats
 	@kill $$(cat /tmp/rehearse-scenario-a.pid) 2>/dev/null || true
 	@echo -e "\n\033[1m2) The fix: same config, startup validation\033[0m"

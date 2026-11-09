@@ -34,7 +34,7 @@ async function bootstrap() {
   // 3. Serve.
   const app = await NestFactory.create(AppModule.forRoot(config), { bufferLogs: true });
   app.useLogger(app.get(Logger));
-  app.setGlobalPrefix("api", { exclude: ["healthz"] });
+  app.setGlobalPrefix("api", { exclude: ["health"] });
   app.enableShutdownHooks();
   await app.listen(config.PORT, "0.0.0.0");
   app

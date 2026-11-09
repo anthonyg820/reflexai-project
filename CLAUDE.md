@@ -31,6 +31,9 @@ Update this CLAUDE.md in the same turn whenever something it describes changes, 
 - web and api both use `packages/telemetry` (OTel NodeSDK; the web loads it from `instrumentation.ts`, with OTel/pino in `serverExternalPackages`). Server-side logging goes through pino (`apps/web/lib/logger.ts`, nestjs-pino in the api).
 - The dashboard lives in `deploy/grafana/rehearse-overview.json`. `scripts/grafana-import.mjs` loads it into local Grafana on `make up` / `make dev` (`make grafana-import` to reload). When changing the dashboard, keep panels working without the `cloud_provider` label: it only exists behind the cloud Collector.
 
+## Gotchas
+- Health endpoint is `/health`, never `/healthz`: Cloud Run's front end reserves paths ending in `z` and returns its own 404.
+
 ## Rules that keep Scenario A fixed (don't break these)
 - Build each image once per commit; deploy only by digest (`…@sha256:`). Never rebuild per environment.
 - Image + runtime config + revision shape ship together: `deploy/cloudrun/*.yaml` or `deploy/ecs/*.json`, rendered by `scripts/render-release.mjs` with `deploy/config/<cloud>-<env>.env.yaml`.

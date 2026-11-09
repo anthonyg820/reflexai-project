@@ -34,7 +34,7 @@ start-local.cmd   # double-click: everything in Docker
 | What | URL |
 |---|---|
 | Web app | http://localhost:3000 |
-| API health | http://localhost:8080/healthz |
+| API health | http://localhost:8080/health |
 | Grafana (traces, logs, metrics) | http://localhost:3001 (admin / admin). Opens on the **Rehearse overview** dashboard: web + API request rate, 5xx ratio, p95 latency, error logs |
 
 Local Postgres is published on port **55432** so it can't collide with a Postgres you already run.

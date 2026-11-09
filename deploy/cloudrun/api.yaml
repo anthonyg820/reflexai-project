@@ -51,14 +51,14 @@ spec:
               memory: 512Mi
           startupProbe:
             httpGet:
-              path: /healthz
+              path: /health
               port: 8080
             periodSeconds: 2
             timeoutSeconds: 2
             failureThreshold: 30
           livenessProbe:
             httpGet:
-              path: /healthz
+              path: /health
               port: 8080
             periodSeconds: 30
         - name: collector
