@@ -124,3 +124,125 @@ Press any key to continue . . .
 ### 19. Sun 2026-11-08 21:41
 
 Should the .terraform.lock.hcl files be included in the .gitignore?
+
+---
+
+### 20. Sun 2026-11-08 21:44
+
+Ok I've executed  2-gcp-setup.cmd successfully and made the repository public
+
+---
+
+### 21. Sun 2026-11-08 22:08
+
+I'm getting this error when running 3-aws-setup.cmd:
+
+
+==> Checking AWS credentials
+  account 990795872461 as arn:aws:iam::990795872461:user/rehearse-admin
+
+==> First Terragrunt apply for AWS
+  This creates, in account 990795872461 (us-east-1):
+    - a state bucket, GitHub OIDC roles, 3 ECR repos, a VPC with public subnets
+    - for uat and prod: an ALB, an ECS cluster and 2 ECS services (0 tasks until the first release)
+  Cost: about $1.10/day for the two ALBs while they exist. Tear down later with: .\make aws-pause
+  Go ahead? (y/n):
+ERROR: Stopped before applying. Re-run this step when ready.
+Press any key to continue . . .
+
+---
+
+### 22. Sun 2026-11-08 22:10
+
+The script never prompts for me to enter y/n until after it already fails.it get's stuck immediately after '==> Checking AWS credentials
+  account 990795872461 as arn:aws:iam::990795872461:user/rehearse-admin'. Then fails after about a minute
+
+---
+
+### 23. Sun 2026-11-08 22:12
+
+Now here's the error output: (attached 3-aws-setup output log)
+
+---
+
+### 24. Sun 2026-11-08 22:32
+
+This is the error being thrown. It seems a policy is overriding the 'AdministratorAccess' role permissions:
+
+
+==> Checking AWS credentials
+  account 990795872461 as arn:aws:iam::990795872461:user/rehearse-admin
+
+==> First Terragrunt apply for AWS
+  This creates, in account 990795872461 (us-east-1):
+    - a state bucket, GitHub OIDC roles, 3 ECR repos, a VPC with public subnets
+    - for uat and prod: an ALB, an ECS cluster and 2 ECS services (0 tasks until the first release)
+  Cost: about $1.10/day for the two ALBs while they exist. Tear down later with: .\make aws-pause
+  Go ahead? (y/n): y
+
+==> State bucket
+  creating s3://rehearse-tfstate-990795872461
+
+aws: [ERROR]: An error occurred (AccessDenied) when calling the CreateBucket operation: User: arn:aws:iam::990795872461:user/rehearse-admin is not authorized to perform: s3:CreateBucket on resource: "arn:aws:s3:::rehearse-tfstate-990795872461" with an explicit deny in a service control policy: arn:aws:organizations::667455045902:policy/o-b5pgni6o38/service_control_policy/p-clgoij0r
+ERROR: Command failed (exit 254):  aws s3api create-bucket --bucket $bucket --region $region | Out-Null
+Press any key to continue . . .
+Terminate batch job (Y/N)?
+
+---
+
+### 25. Mon 2026-11-09 15:47
+
+I cannot get past the AWS role issue. Let's ignore AWS for now and see GCP through to completion. We will revisit AWS later. What's next to do for GCP?
+
+---
+
+### 26. Mon 2026-11-09 15:50
+
+Why are we using Neon and Grafana Cloud when we could just branch our environments via GitHub and use our local Grafana instance for telemetry?
+
+---
+
+### 27. Mon 2026-11-09 18:11
+
+Let's use grafana cloud like you suggested. I've created a Neon account and the branches. And I have setup grafana cloud, now trying to setup OTEL. However, the OTEL setup isn't providing me with an instance ID, like the 4-secrets.cmd file is requesting. It only gives me the following values:
+
+OTEL TOKEN: [REDACTED: Grafana Cloud token removed from the log because this repo is public]
+
+export OTEL_SERVICE_NAME="<your-service-name>" 
+export OTEL_EXPORTER_OTLP_ENDPOINT="https://otlp-gateway-prod-us-east-3.grafana.net/otlp" 
+export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf" 
+export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic [REDACTED]"
+
+---
+
+### 28. Mon 2026-11-09 18:15
+
+I'm getting the following error when trying to run '5-github-setup.cmd':
+
+  AWS not set up yet: configuring GCP only. Re-run this step after step 3; the workflows add AWS automatically.
+
+==> Signing in to GitHub
+  repository anthonyg820/reflexai-project
+
+==> Reading Terraform outputs
+
+==> Setting repository variables
+✓ Created variable GCP_PROJECT_ID for anthonyg820/reflexai-project
+  GCP_PROJECT_ID
+✓ Created variable GCP_REGION for anthonyg820/reflexai-project
+  GCP_REGION
+✓ Created variable GCP_WIF_PROVIDER for anthonyg820/reflexai-project
+  GCP_WIF_PROVIDER
+✓ Created variable GCP_DEPLOYER_SA for anthonyg820/reflexai-project
+  GCP_DEPLOYER_SA
+✓ Created variable GCP_TERRAFORM_SA for anthonyg820/reflexai-project
+  GCP_TERRAFORM_SA
+✓ Created variable GRAFANA_OTLP_ENDPOINT for anthonyg820/reflexai-project
+  GRAFANA_OTLP_ENDPOINT
+✓ Created variable GRAFANA_OTLP_INSTANCE_ID for anthonyg820/reflexai-project
+  GRAFANA_OTLP_INSTANCE_ID
+
+==> Creating deployment environments
+gh: Problems parsing JSON (HTTP 400)
+ERROR: could not create environment gcp-dev
+Press any key to continue . . .

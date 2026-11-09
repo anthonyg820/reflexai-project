@@ -300,3 +300,13 @@ Where the build differs from the sections above, this section wins.
 - **Done and verified locally:** app (web + api), shared packages, unit + e2e tests against Postgres, Docker Compose, OpenTelemetry export (traces/metrics/logs), release renderer, workflows (actionlint), shell scripts (shellcheck), Terraform/Terragrunt (HCL syntax check).
 - **Not runnable in the build sandbox:** `terraform validate/plan`, Docker image builds, anything against real clouds. CI's `infra-plan` and `images` jobs cover these on the first PR.
 - **Next (Mon):** follow `docs/SETUP.md` to bootstrap GCP, AWS, Neon and Grafana Cloud, then push and run the first release.
+
+### Status (Sun 11/8, 21:45)
+- **GCP bootstrapped** in project `rehearse-gzus7h` (us-east1): state bucket, APIs, Workload Identity Federation, Artifact Registry, secrets, six Cloud Run service shells. All 12 units applied.
+- Repo is **public**, so the `production` environment can require a reviewer on the free plan.
+- **Next:** AWS account + `bootstrap\3-aws-setup.cmd`, Neon + Grafana Cloud + `4-secrets.cmd`, then `5-github-setup.cmd` and the first release.
+
+### Status (Mon 11/9, 15:50)
+- **AWS deferred.** The AWS account is inside an AWS Organization whose service control policy denies `s3:CreateBucket` (and likely more), so nothing can be created there. Revisit with a standalone account.
+- Workflows and bootstrap steps now run **GCP-only** until AWS is configured: the ECR copy, aws-uat/aws-prod promotion and AWS Terraform legs skip themselves while the `AWS_ACCOUNT_ID` repo variable is unset.
+- **Next:** Neon (3 branches) + Grafana Cloud, `4-secrets.cmd`, `5-github-setup.cmd`, push to main, then promote to UAT and prod.

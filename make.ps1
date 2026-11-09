@@ -64,6 +64,17 @@ if (-not (($env:PATH -split ';') -contains $ToolsDir)) { $env:PATH = "$ToolsDir;
 $LocalDb     = 'postgres://postgres:rehearse@localhost:55432/rehearse'
 $LocalTestDb = 'postgres://postgres:rehearse@localhost:55432/rehearse_test'
 
+# Account settings written by the bootstrap scripts (GCP_PROJECT_ID, AWS_ACCOUNT_ID, ...).
+# Values already set in the environment win.
+$settingsFile = Join-Path $PSScriptRoot 'bootstrap\settings.env'
+if (Test-Path $settingsFile) {
+    foreach ($line in Get-Content $settingsFile) {
+        if ($line -match '^\s*([A-Z_]+)\s*=\s*(.*?)\s*$' -and -not [Environment]::GetEnvironmentVariable($Matches[1])) {
+            [Environment]::SetEnvironmentVariable($Matches[1], $Matches[2], 'Process')
+        }
+    }
+}
+
 $env:TURBO_TELEMETRY_DISABLED = '1'
 $env:NEXT_TELEMETRY_DISABLED  = '1'
 
