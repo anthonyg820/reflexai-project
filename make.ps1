@@ -61,8 +61,8 @@ $NodeMajor         = [int](Get-Content (Join-Path $PSScriptRoot '.nvmrc') -Raw).
 $ToolsDir = Join-Path $PSScriptRoot '.tools\bin'
 if (-not (($env:PATH -split ';') -contains $ToolsDir)) { $env:PATH = "$ToolsDir;$env:PATH" }
 
-$LocalDb     = 'postgres://postgres:rehearse@localhost:5432/rehearse'
-$LocalTestDb = 'postgres://postgres:rehearse@localhost:5432/rehearse_test'
+$LocalDb     = 'postgres://postgres:rehearse@localhost:55432/rehearse'
+$LocalTestDb = 'postgres://postgres:rehearse@localhost:55432/rehearse_test'
 
 $env:TURBO_TELEMETRY_DISABLED = '1'
 $env:NEXT_TELEMETRY_DISABLED  = '1'
@@ -72,7 +72,12 @@ $env:NEXT_TELEMETRY_DISABLED  = '1'
 function Exec {
     # Run a native command and fail if it exits non-zero.
     param([Parameter(Mandatory)] [scriptblock] $Command)
-    & $Command
+    # Native tools (docker, pnpm) write progress to stderr. When output is redirected,
+    # Windows PowerShell turns those lines into errors, so judge success by exit code only.
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try { & $Command 2>&1 | ForEach-Object { if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.Exception.Message } else { $_ } } }
+    finally { $ErrorActionPreference = $previous }
     if ($LASTEXITCODE -ne 0) { throw "Command failed with exit code ${LASTEXITCODE}: $Command" }
 }
 
@@ -287,7 +292,11 @@ Add-Command 'install-tools' 'Prerequisite binaries' 'Install pinned terraform, t
 
 # Run locally
 Add-Command 'up' 'Run locally' 'Run the full stack in Docker: web :3000, api :8080, Grafana :3001' {
-    Exec { docker compose up --build -d }
+    # Build one image at a time: parallel Next.js + Nest builds can exhaust Docker's memory (exit 137).
+    Exec { docker compose build api }
+    Exec { docker compose build web }
+    Exec { docker compose up -d }
+    Exec { node scripts/grafana-import.mjs }
     Write-Host ''
     Write-Host '  web      http://localhost:3000'
     Write-Host '  api      http://localhost:8080/healthz'
@@ -298,11 +307,17 @@ Add-Command 'logs' 'Run locally' 'Follow logs from the Docker stack (-Service ap
     if ($Service) { Exec { docker compose logs -f $Service } } else { Exec { docker compose logs -f } }
 }
 Add-Command 'ps' 'Run locally' 'Show Docker stack status' { Exec { docker compose ps } }
-Add-Command 'deps-up' 'Run locally' "Start only Postgres + Grafana LGTM (for 'dev')" { Exec { docker compose up -d --wait postgres lgtm } }
+Add-Command 'deps-up' 'Run locally' "Start only Postgres + Grafana LGTM (for 'dev')" {
+    Exec { docker compose up -d --wait postgres lgtm }
+    Exec { node scripts/grafana-import.mjs }
+}
 Add-Command 'dev' 'Run locally' 'Hot-reload web + api on your machine against Dockerized Postgres + Grafana' {
     if (-not (Test-Path 'apps/api/.env')) { throw "Run '.\make setup' first" }
     & $Commands['deps-up'].Action
     Invoke-Pnpm @('dev')
+}
+Add-Command 'grafana-import' 'Run locally' '(Re)load the Rehearse dashboard into local Grafana and make it the home page' {
+    Exec { node scripts/grafana-import.mjs }
 }
 Add-Command 'open' 'Run locally' 'Open the web app and Grafana in your browser' {
     Start-Process 'http://localhost:3000'
@@ -361,7 +376,9 @@ Add-Command 'render' 'Quality (what CI runs)' 'Render every release spec with du
 }
 
 # Database
-Add-Command 'db-shell' 'Database (local)' 'psql into the local database' { Exec { docker compose exec postgres psql -U postgres -d rehearse } }
+Add-Command 'db-shell' 'Database (local)' 'psql into the local database' {
+    & docker compose exec postgres psql -U postgres -d rehearse # interactive: no output capture
+}
 Add-Command 'db-reset' 'Database (local)' 'Drop and recreate the local database (migrations + seed run on next api start)' {
     Exec { docker compose exec -T postgres psql -U postgres -c "DROP DATABASE IF EXISTS rehearse WITH (FORCE)" -c "CREATE DATABASE rehearse" }
     Write-Host "Database reset. Restart the api ('.\make up', or re-run '.\make dev') to migrate and seed."

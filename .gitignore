@@ -16,3 +16,5 @@ coverage/
 crash.log
 .tools/
 .rendered/
+start-local.log
+start-dev.log

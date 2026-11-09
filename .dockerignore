@@ -7,3 +7,10 @@ infra
 .github
 docs
 .git
+# Local env files never go into images (runtime config comes from the platform)
+**/.env
+**/.env.*
+!**/.env.example
+.tools
+.rendered
+*.log

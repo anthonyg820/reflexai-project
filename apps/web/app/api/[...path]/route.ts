@@ -1,5 +1,6 @@
 import { TENANT_HEADER } from "@rehearse/types";
 import type { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
 import { runtimeInfo } from "@/lib/runtime";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,8 @@ async function proxy(req: NextRequest, { params }: { params: Promise<{ path: str
     body: ["GET", "HEAD"].includes(req.method) ? undefined : await req.text(),
     cache: "no-store",
   });
+
+  if (res.status >= 500) logger.error({ status: res.status, target: path.join("/") }, "api proxy upstream error");
 
   return new Response(res.body, {
     status: res.status,

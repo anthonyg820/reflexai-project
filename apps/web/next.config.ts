@@ -11,6 +11,14 @@ const config: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: path.join(__dirname, "../../"),
   poweredByHeader: false,
+  // Load these with Node's require instead of bundling them, so OpenTelemetry
+  // can patch http/undici/pino at runtime.
+  serverExternalPackages: [
+    "@rehearse/telemetry",
+    "@opentelemetry/sdk-node",
+    "@opentelemetry/auto-instrumentations-node",
+    "pino",
+  ],
 };
 
 export default config;

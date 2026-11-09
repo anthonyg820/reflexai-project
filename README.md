@@ -24,16 +24,22 @@ make setup     # once: checks Node/Docker, installs dependencies, creates .env f
 make up        # whole stack in Docker
 make dev       # or: hot reload on your machine, Postgres + Grafana in Docker
 
-# Windows (PowerShell or cmd): same commands
+# Windows (PowerShell or cmd): same commands, or double-click a launcher
 .\make setup
 .\make up
+start-dev.cmd     # double-click: hot reload (Postgres + Grafana in Docker, web + api on Windows)
+start-local.cmd   # double-click: everything in Docker
 ```
 
 | What | URL |
 |---|---|
 | Web app | http://localhost:3000 |
 | API health | http://localhost:8080/healthz |
-| Grafana (traces, logs, metrics) | http://localhost:3001 (admin / admin) |
+| Grafana (traces, logs, metrics) | http://localhost:3001 (admin / admin). Opens on the **Rehearse overview** dashboard: web + API request rate, 5xx ratio, p95 latency, error logs |
+
+Local Postgres is published on port **55432** so it can't collide with a Postgres you already run.
+
+> **Antivirus HTTPS scanning** (e.g. Avast Web Shield) breaks `docker compose up --build`: npm downloads inside the build fail with `UNABLE_TO_VERIFY_LEAF_SIGNATURE` because containers don't trust the antivirus's certificate. Add `registry.npmjs.org` as a Web Shield exception (or pause HTTPS scanning for the build), or use `start-dev.cmd` / `make dev`.
 
 Run `make` to list every command. **On Windows**, use `.\make <command>` instead: `make.cmd` runs `make.ps1`, a PowerShell version with the same commands (options are written `-Cloud aws -Env uat` instead of `CLOUD=aws ENV=uat`).
 

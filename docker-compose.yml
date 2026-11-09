@@ -16,7 +16,7 @@ services:
     environment:
       POSTGRES_PASSWORD: rehearse
       POSTGRES_DB: rehearse
-    ports: ["5432:5432"]
+    ports: ["55432:5432"] # unusual host port so a locally installed Postgres (5432/5433) can't intercept connections
     volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d rehearse"]

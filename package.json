@@ -12,7 +12,8 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "validate:config": "node packages/config/dist/cli.js deploy/config",
-    "render": "node scripts/render-release.mjs"
+    "render": "node scripts/render-release.mjs",
+    "grafana:import": "node scripts/grafana-import.mjs"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

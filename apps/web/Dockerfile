@@ -2,7 +2,9 @@
 # Built ONCE per commit in CI and promoted by digest. No NEXT_PUBLIC_* or
 # other build-time env: API_URL etc. are read at request time.
 
-FROM node:22-alpine AS base
+# Debian (glibc), not Alpine: Next.js's musl SWC/Turbopack binaries crashed
+# (SIGKILL/SIGBUS) under Docker Desktop on Windows.
+FROM node:22-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH NEXT_TELEMETRY_DISABLED=1
 RUN corepack enable
 WORKDIR /repo
@@ -14,7 +16,7 @@ COPY . .
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile --offline
 RUN pnpm turbo run build --filter=@rehearse/web...
 
-FROM node:22-alpine AS runtime
+FROM node:22-bookworm-slim AS runtime
 ARG GIT_SHA=dev
 LABEL org.opencontainers.image.source="https://github.com/anthonyg820/reflexai-project" \
       org.opencontainers.image.revision="${GIT_SHA}"

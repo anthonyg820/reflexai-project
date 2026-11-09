@@ -35,8 +35,8 @@ UNIT  ?=
 TG_DIR := infra/live/$(CLOUD)$(if $(UNIT),/$(UNIT),$(if $(ENV),/$(ENV)))
 
 # ---- Local database ----------------------------------------------------------
-LOCAL_DB      := postgres://postgres:rehearse@localhost:5432/rehearse
-LOCAL_TEST_DB := postgres://postgres:rehearse@localhost:5432/rehearse_test
+LOCAL_DB      := postgres://postgres:rehearse@localhost:55432/rehearse
+LOCAL_TEST_DB := postgres://postgres:rehearse@localhost:55432/rehearse_test
 COMPOSE       := docker compose
 
 export TURBO_TELEMETRY_DISABLED := 1
@@ -134,7 +134,11 @@ $(TOOLS_DIR)/crane: | $(TOOLS_DIR)
 
 .PHONY: up
 up: ## Run the full stack in Docker: web :3000, api :8080, Grafana :3001
-	$(COMPOSE) up --build -d
+	@# Build one image at a time: parallel Next.js + Nest builds can exhaust Docker's memory (exit 137).
+	$(COMPOSE) build api
+	$(COMPOSE) build web
+	$(COMPOSE) up -d
+	@node scripts/grafana-import.mjs
 	@echo -e "\n  web      http://localhost:3000\n  api      http://localhost:8080/healthz\n  grafana  http://localhost:3001  (admin / admin)\n"
 
 .PHONY: down
@@ -152,6 +156,7 @@ ps: ## Show Docker stack status
 .PHONY: deps-up
 deps-up: ## Start only Postgres + Grafana LGTM (for 'make dev')
 	$(COMPOSE) up -d --wait postgres lgtm
+	@node scripts/grafana-import.mjs
 
 .PHONY: dev
 dev: deps-up ## Hot-reload web + api on your machine against Dockerized Postgres + Grafana
@@ -162,6 +167,10 @@ dev: deps-up ## Hot-reload web + api on your machine against Dockerized Postgres
 open: ## Open the web app and Grafana in your browser
 	@for u in http://localhost:3000 http://localhost:3001; do \
 	  (command -v open >/dev/null && open $$u) || (command -v xdg-open >/dev/null && xdg-open $$u) || echo $$u; done
+
+.PHONY: grafana-import
+grafana-import: ## (Re)load the Rehearse dashboard into local Grafana and make it the home page
+	node scripts/grafana-import.mjs
 
 ##@ Quality (what CI runs)
 

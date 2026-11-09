@@ -66,3 +66,33 @@ Create a MAKEFILE in the project that simplifies the execution of key developmen
 ### 10. Sun 2026-11-08 19:43
 
 MAKEFILE is more of a linux-native approach. Keep it for linux users, but create a separate, similar type of file for windows users
+
+---
+
+### 11. Sun 2026-11-08 19:49
+
+Run the web app locally on my machine
+
+---
+
+### 12. Sun 2026-11-08 20:15
+
+Guide me on excluding Docker from Avasts HTTPS scanning
+
+---
+
+### 13. Sun 2026-11-08 20:22
+
+Here are the output logs from running the 'start-local.cmd': (attached start-local output log)
+
+---
+
+### 14. Sun 2026-11-08 20:36
+
+Are the local grafana dashboards already set and configured to collect and display metrics from the web app?
+
+---
+
+### 15. Sun 2026-11-08 20:38
+
+Yes please

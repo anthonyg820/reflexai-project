@@ -1,6 +1,7 @@
 import "server-only";
 import { TENANT_HEADER } from "@rehearse/types";
 import { cookies } from "next/headers";
+import { logger } from "./logger";
 import { runtimeInfo } from "./runtime";
 import { TENANT_COOKIE, normalizeTenant } from "./tenant";
 
@@ -28,6 +29,9 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
       ...init.headers,
     },
   });
-  if (!res.ok) throw new ApiError(res.status, `API ${init.method ?? "GET"} ${path} failed with ${res.status}`);
+  if (!res.ok) {
+    logger.error({ status: res.status, path, method: init.method ?? "GET" }, "api request failed");
+    throw new ApiError(res.status, `API ${init.method ?? "GET"} ${path} failed with ${res.status}`);
+  }
   return (await res.json()) as T;
 }

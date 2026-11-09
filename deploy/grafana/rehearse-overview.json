@@ -2,11 +2,13 @@
   "title": "Rehearse overview",
   "uid": "rehearse-overview",
   "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
   "time": {
-    "from": "now-3h",
+    "from": "now-1h",
     "to": "now"
   },
-  "refresh": "30s",
+  "refresh": "10s",
   "tags": [
     "rehearse"
   ],
@@ -14,9 +16,19 @@
     "list": [
       {
         "name": "datasource",
+        "label": "Metrics",
         "type": "datasource",
         "query": "prometheus",
-        "current": {}
+        "current": {},
+        "hide": 0
+      },
+      {
+        "name": "logs",
+        "label": "Logs",
+        "type": "datasource",
+        "query": "loki",
+        "current": {},
+        "hide": 0
       }
     ]
   },
@@ -44,11 +56,128 @@
   "panels": [
     {
       "id": 1,
-      "type": "timeseries",
-      "title": "API requests / s by cloud \u00d7 env",
+      "type": "row",
+      "title": "Web (Next.js)",
+      "collapsed": false,
       "gridPos": {
         "x": 0,
         "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Requests / s",
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (cloud_provider, deployment_environment_name) (rate(http_server_request_duration_seconds_count{job=~\".*rehearse-web\"}[1m]))",
+          "legendFormat": "{{deployment_environment_name}} {{cloud_provider}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "5xx ratio (alert above 2%)",
+      "gridPos": {
+        "x": 8,
+        "y": 1,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.02
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "dashed"
+            },
+            "axisSoftMax": 0.05
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(sum by (cloud_provider, deployment_environment_name) (rate(http_server_request_duration_seconds_count{job=~\".*rehearse-web\", http_response_status_code=~\"5..\"}[2m])) or (sum by (cloud_provider, deployment_environment_name) (rate(http_server_request_duration_seconds_count{job=~\".*rehearse-web\"}[2m])) * 0)) / sum by (cloud_provider, deployment_environment_name) (rate(http_server_request_duration_seconds_count{job=~\".*rehearse-web\"}[2m]))",
+          "legendFormat": "{{deployment_environment_name}} {{cloud_provider}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "p95 latency",
+      "gridPos": {
+        "x": 16,
+        "y": 1,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le, cloud_provider, deployment_environment_name) (rate(http_server_request_duration_seconds_bucket{job=~\".*rehearse-web\"}[5m])))",
+          "legendFormat": "{{deployment_environment_name}} {{cloud_provider}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Requests / s by status",
+      "gridPos": {
+        "x": 0,
+        "y": 9,
         "w": 12,
         "h": 8
       },
@@ -65,18 +194,18 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (cloud_provider, deployment_environment_name) (rate(http_server_request_duration_seconds_count{job=~\".*rehearse-api\"}[1m]))",
-          "legendFormat": "{{cloud_provider}} / {{deployment_environment_name}}"
+          "expr": "sum by (http_response_status_code) (rate(http_server_request_duration_seconds_count{job=~\".*rehearse-web\"}[1m]))",
+          "legendFormat": "{{http_response_status_code}}"
         }
       ]
     },
     {
-      "id": 2,
+      "id": 6,
       "type": "timeseries",
-      "title": "API 5xx ratio (alert above 2%)",
+      "title": "Web -> API calls / s by status",
       "gridPos": {
         "x": 12,
-        "y": 0,
+        "y": 9,
         "w": 12,
         "h": 8
       },
@@ -86,26 +215,115 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "percentunit"
+          "unit": "reqps"
         },
         "overrides": []
       },
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (cloud_provider, deployment_environment_name) (rate(http_server_request_duration_seconds_count{job=~\".*rehearse-api\", http_response_status_code=~\"5..\"}[5m])) / sum by (cloud_provider, deployment_environment_name) (rate(http_server_request_duration_seconds_count{job=~\".*rehearse-api\"}[5m]))",
-          "legendFormat": "{{cloud_provider}} / {{deployment_environment_name}}"
+          "expr": "sum by (http_response_status_code) (rate(http_client_request_duration_seconds_count{job=~\".*rehearse-web\"}[1m]))",
+          "legendFormat": "{{http_response_status_code}}"
         }
       ]
     },
     {
-      "id": 3,
-      "type": "timeseries",
-      "title": "API p95 latency",
+      "id": 7,
+      "type": "row",
+      "title": "API (NestJS)",
+      "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 8,
-        "w": 12,
+        "y": 17,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Requests / s",
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (cloud_provider, deployment_environment_name) (rate(http_server_request_duration_seconds_count{job=~\".*rehearse-api\"}[1m]))",
+          "legendFormat": "{{deployment_environment_name}} {{cloud_provider}}"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "5xx ratio (alert above 2%)",
+      "gridPos": {
+        "x": 8,
+        "y": 18,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.02
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "dashed"
+            },
+            "axisSoftMax": 0.05
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(sum by (cloud_provider, deployment_environment_name) (rate(http_server_request_duration_seconds_count{job=~\".*rehearse-api\", http_response_status_code=~\"5..\"}[2m])) or (sum by (cloud_provider, deployment_environment_name) (rate(http_server_request_duration_seconds_count{job=~\".*rehearse-api\"}[2m])) * 0)) / sum by (cloud_provider, deployment_environment_name) (rate(http_server_request_duration_seconds_count{job=~\".*rehearse-api\"}[2m]))",
+          "legendFormat": "{{deployment_environment_name}} {{cloud_provider}}"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "p95 latency",
+      "gridPos": {
+        "x": 16,
+        "y": 18,
+        "w": 8,
         "h": 8
       },
       "datasource": {
@@ -122,17 +340,45 @@
         {
           "refId": "A",
           "expr": "histogram_quantile(0.95, sum by (le, cloud_provider, deployment_environment_name) (rate(http_server_request_duration_seconds_bucket{job=~\".*rehearse-api\"}[5m])))",
-          "legendFormat": "{{cloud_provider}} / {{deployment_environment_name}}"
+          "legendFormat": "{{deployment_environment_name}} {{cloud_provider}}"
         }
       ]
     },
     {
-      "id": 4,
+      "id": 11,
+      "type": "timeseries",
+      "title": "Requests / s by route",
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (http_route, http_request_method) (rate(http_server_request_duration_seconds_count{job=~\".*rehearse-api\"}[1m]))",
+          "legendFormat": "{{http_request_method}} {{http_route}}"
+        }
+      ]
+    },
+    {
+      "id": 12,
       "type": "timeseries",
       "title": "Sessions completed / min by rubric",
       "gridPos": {
         "x": 12,
-        "y": 8,
+        "y": 26,
         "w": 12,
         "h": 8
       },
@@ -149,20 +395,33 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (rehearse_rubric, cloud_provider) (rate(rehearse_sessions_completed_total[5m])) * 60",
-          "legendFormat": "{{cloud_provider}} {{rehearse_rubric}}"
+          "expr": "sum by (rehearse_rubric) (rate(rehearse_sessions_completed_total[5m])) * 60",
+          "legendFormat": "{{rehearse_rubric}}"
         }
       ]
     },
     {
-      "id": 5,
+      "id": 13,
+      "type": "row",
+      "title": "Releases and logs",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 34,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 14,
       "type": "table",
       "title": "Running versions",
       "gridPos": {
         "x": 0,
-        "y": 16,
-        "w": 24,
-        "h": 7
+        "y": 35,
+        "w": 10,
+        "h": 8
       },
       "datasource": {
         "type": "prometheus",
@@ -185,6 +444,33 @@
               "Value": true
             }
           }
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "logs",
+      "title": "Error logs (web + api)",
+      "gridPos": {
+        "x": 10,
+        "y": 35,
+        "w": 14,
+        "h": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "${logs}"
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service_name=~\"rehearse-.*\"} | severity_text=~\"(?i)(error|fatal)\""
         }
       ]
     }
