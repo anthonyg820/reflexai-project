@@ -12,7 +12,11 @@ Values the steps discover (project ID, account ID, Grafana endpoint) go in
 | `4-secrets.cmd` | Stores Neon URLs and the Grafana token in Secret Manager / SSM | Paste values (hidden) |
 | `5-github-setup.cmd` | Repo variables + deployment environments (`production` with you as reviewer) | Sign in to GitHub in the browser |
 
-Accounts needed first: Google Cloud with billing (step 2), AWS (step 3), Neon with five
-branches `gcp-dev`, `gcp-uat`, `gcp-prod`, `aws-uat`, `aws-prod` and Grafana Cloud (step 4).
+Accounts needed first: Google Cloud with billing (step 2), AWS (step 3), Neon with a branch per
+environment (`gcp-dev`, `gcp-uat`, `gcp-prod`, plus `aws-uat`, `aws-prod` once AWS exists) and
+Grafana Cloud (step 4). Use Neon's **direct** connection strings (pooling off).
+
+**AWS is optional.** Steps 4 and 5 and the workflows run GCP-only until step 3 has completed
+(`AWS_READY=true` in `settings.env`, `AWS_ACCOUNT_ID` repo variable); re-run 4 and 5 afterwards.
 
 On macOS/Linux, `docs/SETUP.md` has the same steps as `make` commands.

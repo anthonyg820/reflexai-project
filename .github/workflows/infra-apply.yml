@@ -34,7 +34,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cloud: [gcp, aws]
+        # AWS joins the matrix once the AWS_ACCOUNT_ID repo variable exists.
+        cloud: ${{ fromJSON(vars.AWS_ACCOUNT_ID != '' && '["gcp","aws"]' || '["gcp"]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-iac

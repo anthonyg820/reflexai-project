@@ -11,10 +11,13 @@ Set-Location (Split-Path $PSScriptRoot -Parent)
 $env:PATH = "$(Join-Path (Split-Path $PSScriptRoot -Parent) '.tools\bin');$env:PATH"
 Require-Command gh 'Run 1-install-tools.cmd first, then open a NEW window.'
 $settings = Read-Settings
-foreach ($k in 'GCP_PROJECT_ID', 'GCP_REGION', 'AWS_ACCOUNT_ID', 'AWS_REGION', 'GRAFANA_OTLP_ENDPOINT', 'GRAFANA_OTLP_INSTANCE_ID') {
+foreach ($k in 'GCP_PROJECT_ID', 'GCP_REGION', 'GRAFANA_OTLP_ENDPOINT', 'GRAFANA_OTLP_INSTANCE_ID') {
     if (-not $settings[$k]) { throw "$k missing from bootstrap\settings.env: run steps 2-4 first." }
 }
-$env:GCP_PROJECT_ID = $settings.GCP_PROJECT_ID; $env:AWS_ACCOUNT_ID = $settings.AWS_ACCOUNT_ID
+$env:GCP_PROJECT_ID = $settings.GCP_PROJECT_ID
+$aws = $settings.AWS_READY -eq 'true'
+if ($aws) { $env:AWS_ACCOUNT_ID = $settings.AWS_ACCOUNT_ID }
+else { Write-Host '  AWS not set up yet: configuring GCP only. Re-run this step after step 3; the workflows add AWS automatically.' -ForegroundColor Yellow }
 
 Step 'Signing in to GitHub'
 Capture { gh auth status } | Out-Null; $ok = $LASTEXITCODE -eq 0
@@ -34,12 +37,15 @@ $vars = [ordered]@{
     GCP_WIF_PROVIDER         = TgOutput 'infra/live/gcp/shared/wif' 'workload_identity_provider'
     GCP_DEPLOYER_SA          = TgOutput 'infra/live/gcp/shared/wif' 'deployer_service_account'
     GCP_TERRAFORM_SA         = TgOutput 'infra/live/gcp/shared/wif' 'terraform_service_account'
-    AWS_ACCOUNT_ID           = $settings.AWS_ACCOUNT_ID
-    AWS_REGION               = $settings.AWS_REGION
-    AWS_DEPLOYER_ROLE_ARN    = TgOutput 'infra/live/aws/shared/oidc' 'deployer_role_arn'
-    AWS_TERRAFORM_ROLE_ARN   = TgOutput 'infra/live/aws/shared/oidc' 'terraform_role_arn'
     GRAFANA_OTLP_ENDPOINT    = $settings.GRAFANA_OTLP_ENDPOINT
     GRAFANA_OTLP_INSTANCE_ID = $settings.GRAFANA_OTLP_INSTANCE_ID
+}
+
+if ($aws) {
+    $vars['AWS_ACCOUNT_ID'] = $settings.AWS_ACCOUNT_ID
+    $vars['AWS_REGION'] = $settings.AWS_REGION
+    $vars['AWS_DEPLOYER_ROLE_ARN'] = TgOutput 'infra/live/aws/shared/oidc' 'deployer_role_arn'
+    $vars['AWS_TERRAFORM_ROLE_ARN'] = TgOutput 'infra/live/aws/shared/oidc' 'terraform_role_arn'
 }
 
 Step 'Setting repository variables'
@@ -59,7 +65,8 @@ function Put-Environment([string] $Name, [hashtable] $Body) {
 
 Step 'Creating deployment environments'
 $branchPolicy = @{ protected_branches = $false; custom_branch_policies = $true }
-foreach ($name in 'gcp-dev', 'gcp-uat', 'gcp-prod', 'aws-uat', 'aws-prod') {
+$envNames = @('gcp-dev', 'gcp-uat', 'gcp-prod'); if ($aws) { $envNames += 'aws-uat', 'aws-prod' }
+foreach ($name in $envNames) {
     Put-Environment $name @{ deployment_branch_policy = $branchPolicy }
 }
 $me = (& gh api user -q .id | Out-String).Trim()

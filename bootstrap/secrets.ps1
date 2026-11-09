@@ -8,8 +8,11 @@ $ErrorActionPreference = 'Stop'
 Set-Location (Split-Path $PSScriptRoot -Parent)
 . "$PSScriptRoot\lib.ps1"
 $settings = Read-Settings
-foreach ($k in 'GCP_PROJECT_ID', 'AWS_REGION') { if (-not $settings[$k]) { throw "$k missing: run steps 2 and 3 first." } }
+if (-not $settings.GCP_PROJECT_ID) { throw 'GCP_PROJECT_ID missing: run step 2 first.' }
 $project = $settings.GCP_PROJECT_ID; $region = $settings.AWS_REGION
+# AWS is optional until step 3 has completed (AWS_READY=true in settings.env).
+$aws = $settings.AWS_READY -eq 'true'
+if (-not $aws) { Write-Host '  AWS not set up yet: storing GCP secrets only. Re-run this step after step 3.' -ForegroundColor Yellow }
 
 function Read-Secret([string] $Prompt) {
     $secure = Read-Host -AsSecureString $Prompt
@@ -38,9 +41,9 @@ Save-Setting 'GRAFANA_OTLP_ENDPOINT' $endpoint.Trim()
 Save-Setting 'GRAFANA_OTLP_INSTANCE_ID' $instance.Trim()
 $token = Read-Secret '  API token (hidden)'
 foreach ($e in 'dev', 'uat', 'prod') { Set-GcpSecret "rehearse-$e-grafana-otlp-token" $token }
-foreach ($e in 'uat', 'prod') { Set-AwsParam "/rehearse/$e/grafana-otlp-token" $token }
+if ($aws) { foreach ($e in 'uat', 'prod') { Set-AwsParam "/rehearse/$e/grafana-otlp-token" $token } }
 
-Step 'Neon connection strings (one branch per environment; use the pooled URL with sslmode=require)'
+Step 'Neon connection strings (one branch per environment; use the DIRECT URL, not the pooled one: migrations take a Postgres advisory lock, which pooling breaks)'
 foreach ($e in 'dev', 'uat', 'prod') { Set-GcpSecret "rehearse-$e-database-url" (Read-Secret "  gcp-$e DATABASE_URL (hidden)") }
-foreach ($e in 'uat', 'prod') { Set-AwsParam "/rehearse/$e/database-url" (Read-Secret "  aws-$e DATABASE_URL (hidden)") }
+if ($aws) { foreach ($e in 'uat', 'prod') { Set-AwsParam "/rehearse/$e/database-url" (Read-Secret "  aws-$e DATABASE_URL (hidden)") } }
 Done 'All secrets stored.'

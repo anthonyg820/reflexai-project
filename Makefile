@@ -39,6 +39,11 @@ LOCAL_DB      := postgres://postgres:rehearse@localhost:55432/rehearse
 LOCAL_TEST_DB := postgres://postgres:rehearse@localhost:55432/rehearse_test
 COMPOSE       := docker compose
 
+# Account settings written by the bootstrap scripts (GCP_PROJECT_ID, AWS_ACCOUNT_ID, ...).
+# (Make gives these precedence over the environment.)
+-include bootstrap/settings.env
+export GCP_PROJECT_ID GCP_REGION AWS_ACCOUNT_ID AWS_REGION
+
 export TURBO_TELEMETRY_DISABLED := 1
 export NEXT_TELEMETRY_DISABLED  := 1
 

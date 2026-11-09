@@ -69,6 +69,7 @@ jobs:
   mirror:
     name: Copy images to ECR by digest
     needs: build
+    if: vars.AWS_ACCOUNT_ID != ''  # AWS is optional: GCP-only until it's set up
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -99,7 +100,9 @@ jobs:
 
   deploy-dev:
     name: Deploy gcp-dev
-    needs: mirror
+    needs: [build, mirror]
+    # Runs when the ECR copy succeeded or was skipped (no AWS yet).
+    if: always() && needs.build.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.mirror.result)
     uses: ./.github/workflows/deploy-gcp.yml
     secrets: inherit
     with:

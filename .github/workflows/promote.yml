@@ -44,25 +44,31 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOYER_SA }}
       - uses: google-github-actions/setup-gcloud@v2
-      - uses: aws-actions/configure-aws-credentials@v4
+      - if: vars.AWS_ACCOUNT_ID != ''
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_DEPLOYER_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
       - uses: imjasonh/setup-crane@v0.4
       - id: version
         name: Read the version serving in the source stage
+        env:
+          AWS_ENABLED: ${{ vars.AWS_ACCOUNT_ID != '' }}
         run: |
           if [[ "${{ inputs.target }}" == "uat" ]]; then
             version="$(bash deploy/scripts/current-version.sh gcp dev)"
           else
             gcp="$(bash deploy/scripts/current-version.sh gcp uat)"
-            aws="$(bash deploy/scripts/current-version.sh aws uat)"
-            [[ "$gcp" == "$aws" ]] || { echo "::error::gcp-uat runs $gcp but aws-uat runs $aws. Promote one version to UAT first."; exit 1; }
+            if [[ "$AWS_ENABLED" == "true" ]]; then
+              aws="$(bash deploy/scripts/current-version.sh aws uat)"
+              [[ "$gcp" == "$aws" ]] || { echo "::error::gcp-uat runs $gcp but aws-uat runs $aws. Promote one version to UAT first."; exit 1; }
+            fi
             version="$gcp"
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Promoting \`$version\` to **${{ inputs.target }}**" >> "$GITHUB_STEP_SUMMARY"
       - name: Prove both clouds hold the same bytes
+        if: vars.AWS_ACCOUNT_ID != ''
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
@@ -86,7 +92,7 @@ jobs:
       version: ${{ needs.resolve.outputs.version }}
 
   uat-aws:
-    if: inputs.target == 'uat'
+    if: inputs.target == 'uat' && vars.AWS_ACCOUNT_ID != ''
     needs: resolve
     uses: ./.github/workflows/deploy-aws.yml
     secrets: inherit
@@ -114,6 +120,7 @@ jobs:
       canary: true
 
   prod-aws:
+    if: vars.AWS_ACCOUNT_ID != ''
     needs: [resolve, prod-gcp]
     uses: ./.github/workflows/deploy-aws.yml
     secrets: inherit

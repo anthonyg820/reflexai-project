@@ -54,9 +54,6 @@ if (-not (Test-Path $adc)) { Native { gcloud auth application-default login } }
 Native { gcloud config set project $project }
 Native { gcloud auth application-default set-quota-project $project }
 
-Step 'Saving environment variables (GCP_PROJECT_ID, GCP_REGION)'
-[Environment]::SetEnvironmentVariable('GCP_PROJECT_ID', $project, 'User')
-[Environment]::SetEnvironmentVariable('GCP_REGION', $region, 'User')
 $env:GCP_PROJECT_ID = $project; $env:GCP_REGION = $region
 
 Step 'First Terragrunt apply for GCP'
@@ -64,7 +61,7 @@ Write-Host "  This creates, in project ${project}:"
 Write-Host '    - a state bucket, enabled APIs, Workload Identity Federation for GitHub Actions'
 Write-Host '    - an Artifact Registry repo, Secret Manager secrets (empty) and 6 Cloud Run service shells'
 Write-Host '  All of it costs nothing at idle.'
-if ((Read-Host '  Go ahead? (y/n)') -ne 'y') { throw 'Stopped before applying. Re-run this step when ready.' }
+Confirm-Step 'Go ahead?'
 Require-Command terragrunt 'Run 1-install-tools.cmd first.'
 $env:PATH = "$(Join-Path (Split-Path $PSScriptRoot -Parent) '.tools\bin');$env:PATH"
 Push-Location infra/live/gcp

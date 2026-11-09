@@ -38,3 +38,14 @@ function Capture([scriptblock] $Command) {
     $previous = $ErrorActionPreference; $ErrorActionPreference = 'SilentlyContinue'
     try { return ((& $Command 2>$null) | Out-String).Trim() } catch { return '' } finally { $ErrorActionPreference = $previous }
 }
+
+function Confirm-Step([string] $Question) {
+    # Ask until we get a clear answer. A stray Enter (e.g. left over from 'aws configure') re-asks instead of aborting.
+    try { $Host.UI.RawUI.FlushInputBuffer() } catch { }  # drop keys pressed while earlier steps ran
+    while ($true) {
+        $answer = (Read-Host "  $Question (y/n)").Trim().ToLower()
+        if ($answer -in 'y', 'yes') { return }
+        if ($answer -in 'n', 'no') { throw 'Stopped before applying. Re-run this step when ready.' }
+        Write-Host '  Please type y or n.'
+    }
+}
