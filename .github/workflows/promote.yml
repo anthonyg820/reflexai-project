@@ -1,0 +1,139 @@
+# Promote whatever is serving in the previous stage to the next one, by digest.
+#
+#   target=uat :  gcp-dev  ──▶ gcp-uat + aws-uat (in parallel)
+#   target=prod:  gcp-uat == aws-uat ──▶ [approval] ──▶ gcp-prod (canary) ──▶ aws-prod
+#
+# The version is read from the LIVE source environment(s), never typed in, so
+# nothing can skip a stage. Nothing is rebuilt.
+name: Promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Environment to promote into
+        type: choice
+        options: [uat, prod]
+        required: true
+
+concurrency:
+  group: promote
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+  deployments: write
+
+jobs:
+  resolve:
+    name: Resolve version to promote
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    env:
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION }}
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOYER_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - uses: imjasonh/setup-crane@v0.4
+      - id: version
+        name: Read the version serving in the source stage
+        run: |
+          if [[ "${{ inputs.target }}" == "uat" ]]; then
+            version="$(bash deploy/scripts/current-version.sh gcp dev)"
+          else
+            gcp="$(bash deploy/scripts/current-version.sh gcp uat)"
+            aws="$(bash deploy/scripts/current-version.sh aws uat)"
+            [[ "$gcp" == "$aws" ]] || { echo "::error::gcp-uat runs $gcp but aws-uat runs $aws. Promote one version to UAT first."; exit 1; }
+            version="$gcp"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Promoting \`$version\` to **${{ inputs.target }}**" >> "$GITHUB_STEP_SUMMARY"
+      - name: Prove both clouds hold the same bytes
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gcloud auth print-access-token | crane auth login "${GCP_REGION}-docker.pkg.dev" -u oauth2accesstoken --password-stdin
+          aws ecr get-login-password | crane auth login "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com" -u AWS --password-stdin
+          for image in api web collector; do
+            g="$(crane digest "${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/rehearse/$image:sha-$VERSION")"
+            a="$(crane digest "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/rehearse/$image:sha-$VERSION")"
+            [[ "$g" == "$a" ]] || { echo "::error::$image digest differs between clouds ($g vs $a)"; exit 1; }
+            echo "| $image | \`$g\` |" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+  # ---------- UAT: both clouds in parallel ----------
+  uat-gcp:
+    if: inputs.target == 'uat'
+    needs: resolve
+    uses: ./.github/workflows/deploy-gcp.yml
+    secrets: inherit
+    with:
+      environment: uat
+      version: ${{ needs.resolve.outputs.version }}
+
+  uat-aws:
+    if: inputs.target == 'uat'
+    needs: resolve
+    uses: ./.github/workflows/deploy-aws.yml
+    secrets: inherit
+    with:
+      environment: uat
+      version: ${{ needs.resolve.outputs.version }}
+
+  # ---------- PROD: one human approval, then GCP (canary) before AWS ----------
+  approve:
+    if: inputs.target == 'prod'
+    needs: resolve
+    name: Approve production release
+    runs-on: ubuntu-latest
+    environment: production # required reviewers configured on this environment
+    steps:
+      - run: echo "Approved ${{ needs.resolve.outputs.version }} for production by ${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
+
+  prod-gcp:
+    needs: [resolve, approve]
+    uses: ./.github/workflows/deploy-gcp.yml
+    secrets: inherit
+    with:
+      environment: prod
+      version: ${{ needs.resolve.outputs.version }}
+      canary: true
+
+  prod-aws:
+    needs: [resolve, prod-gcp]
+    uses: ./.github/workflows/deploy-aws.yml
+    secrets: inherit
+    with:
+      environment: prod
+      version: ${{ needs.resolve.outputs.version }}
+
+  notify:
+    if: always() && needs.resolve.result == 'success'
+    needs: [resolve, uat-gcp, uat-aws, prod-gcp, prod-aws]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          TEXT: >-
+            Promote to ${{ inputs.target }} of ${{ needs.resolve.outputs.version }}:
+            gcp=${{ needs.uat-gcp.result }}${{ needs.prod-gcp.result }}
+            aws=${{ needs.uat-aws.result }}${{ needs.prod-aws.result }}
+            (${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+        run: |
+          [[ -n "$SLACK_WEBHOOK_URL" ]] || { echo "No SLACK_WEBHOOK_URL secret; skipping"; exit 0; }
+          curl -fsS -X POST -H 'content-type: application/json' -d "$(jq -n --arg t "$TEXT" '{text: $t}')" "$SLACK_WEBHOOK_URL"

@@ -1,0 +1,86 @@
+# Cloud Run revision spec for rehearse-web. Rendered at release time by
+# scripts/render-release.mjs, which fills ${...} placeholders and sets API_URL to the
+# api service's URL. Image digest + config
+# + shape ship together as ONE revision (`gcloud run services replace`).
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: ${SERVICE_NAME}
+  labels:
+    cloud.googleapis.com/location: ${REGION}
+    # Keep in sync with the provider's default/attribution labels so a
+    # release doesn't show up as Terraform drift.
+    app: rehearse
+    managed-by: terragrunt
+    goog-terraform-provisioned: "true"
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      name: ${REVISION_NAME}
+      labels:
+        app: rehearse
+        rehearse-version: ${VERSION}
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "3"
+        run.googleapis.com/startup-cpu-boost: "true"
+        run.googleapis.com/container-dependencies: '{"web":["collector"]}'
+    spec:
+      serviceAccountName: ${RUNTIME_SA}
+      containerConcurrency: 80
+      timeoutSeconds: 60
+      containers:
+        - name: web
+          image: ${IMAGE}
+          ports:
+            - name: http1
+              containerPort: 8080
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://localhost:4318
+            - name: API_URL
+              value: ${API_URL}
+            - name: DEPLOY_ENV
+              value: ${ENV}
+            - name: CLOUD_PROVIDER
+              value: gcp
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 2
+            timeoutSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            periodSeconds: 30
+        - name: collector
+          image: ${COLLECTOR_IMAGE}
+          env:
+            - name: GRAFANA_OTLP_ENDPOINT
+              value: ${GRAFANA_OTLP_ENDPOINT}
+            - name: GRAFANA_OTLP_INSTANCE_ID
+              value: "${GRAFANA_OTLP_INSTANCE_ID}"
+            - name: GRAFANA_OTLP_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: ${SECRET_PREFIX}-grafana-otlp-token
+                  key: latest
+          resources:
+            limits:
+              cpu: "1"
+              memory: 256Mi
+          startupProbe:
+            httpGet:
+              path: /
+              port: 13133
+            periodSeconds: 2
+            failureThreshold: 15

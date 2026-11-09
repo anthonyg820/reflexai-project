@@ -1,0 +1,70 @@
+# OpenTelemetry Collector, run as a sidecar next to every app container
+# (Cloud Run multi-container service / ECS task). Apps send OTLP to
+# localhost:4318. The Collector batches, adds cloud metadata and forwards to
+# Grafana Cloud over OTLP. Switching vendors (e.g. to Datadog) means
+# changing the exporter here, not the apps.
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  basicauth/grafana:
+    client_auth:
+      username: ${env:GRAFANA_OTLP_INSTANCE_ID}
+      password: ${env:GRAFANA_OTLP_TOKEN}
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 20
+  resourcedetection:
+    # gcp detects Cloud Run; ecs detects Fargate task metadata. Unknown detectors are skipped.
+    detectors: [env, gcp, ecs]
+    timeout: 2s
+    override: false
+  # Copy key resource attributes onto every metric datapoint so PromQL can
+  # slice by cloud / environment / version without joining target_info.
+  transform/promote:
+    metric_statements:
+      - context: datapoint
+        statements:
+          - set(attributes["deployment.environment.name"], resource.attributes["deployment.environment.name"])
+          - set(attributes["cloud.provider"], resource.attributes["cloud.provider"])
+          - set(attributes["service.version"], resource.attributes["service.version"])
+  batch:
+    send_batch_size: 512
+    timeout: 5s
+
+exporters:
+  otlphttp/grafana:
+    endpoint: ${env:GRAFANA_OTLP_ENDPOINT}
+    auth:
+      authenticator: basicauth/grafana
+  debug:
+    verbosity: basic
+
+service:
+  extensions: [health_check, basicauth/grafana]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resourcedetection, batch]
+      exporters: [otlphttp/grafana]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, resourcedetection, transform/promote, batch]
+      exporters: [otlphttp/grafana]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resourcedetection, batch]
+      exporters: [otlphttp/grafana]
+  telemetry:
+    logs:
+      level: warn

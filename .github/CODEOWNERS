@@ -1,0 +1,6 @@
+# Risk-based review: everyone can review app code; platform paths need a platform owner.
+*                         @anthonyg820
+/infra/                   @anthonyg820
+/.github/                 @anthonyg820
+/deploy/                  @anthonyg820
+/apps/api/migrations/     @anthonyg820

@@ -1,0 +1,66 @@
+# Nightly drift detection: plan every unit with -detailed-exitcode and open
+# (or update) an issue when reality no longer matches the code.
+name: Drift detection
+
+on:
+  schedule:
+    - cron: "17 10 * * *" # 05:17 New York
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  issues: write
+
+env:
+  TG_NON_INTERACTIVE: "true"
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ vars.GCP_REGION }}
+  GCP_WIF_PROVIDER: ${{ vars.GCP_WIF_PROVIDER }}
+  GCP_TERRAFORM_SA: ${{ vars.GCP_TERRAFORM_SA }}
+  AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  AWS_TERRAFORM_ROLE_ARN: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+
+jobs:
+  drift:
+    name: Drift ${{ matrix.cloud }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud: [gcp, aws]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-iac
+        with:
+          cloud: ${{ matrix.cloud }}
+      - name: Plan each unit
+        id: drift
+        run: |
+          drifted=()
+          while read -r unit; do
+            dir="$(dirname "$unit")"
+            set +e
+            (cd "$dir" && terragrunt run -- plan -detailed-exitcode -lock=false -no-color > /tmp/plan.log 2>&1)
+            code=$?
+            set -e
+            case $code in
+              0) echo "✓ $dir" ;;
+              2) echo "✗ drift: $dir"; drifted+=("$dir") ;;
+              *) echo "! error: $dir"; tail -20 /tmp/plan.log; drifted+=("$dir (plan error)") ;;
+            esac
+          done < <(find "infra/live/${{ matrix.cloud }}" -name terragrunt.hcl -not -path '*/.terragrunt-cache/*' | sort)
+          printf '%s\n' "${drifted[@]}" > /tmp/drifted.txt
+          echo "count=${#drifted[@]}" >> "$GITHUB_OUTPUT"
+      - name: Open or update drift issue
+        if: steps.drift.outputs.count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: "Infrastructure drift detected (${{ matrix.cloud }})"
+        run: |
+          body="$(printf 'Nightly drift detection found differences between code and reality:\n\n%s\n\nRun: %s\n' \
+            "$(sed 's/^/- /' /tmp/drifted.txt)" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID")"
+          existing="$(gh issue list --state open --search "in:title \"$TITLE\"" --json number --jq '.[0].number')"
+          if [[ -n "$existing" ]]; then gh issue comment "$existing" --body "$body"; else gh issue create --title "$TITLE" --body "$body" --label drift || gh issue create --title "$TITLE" --body "$body"; fi

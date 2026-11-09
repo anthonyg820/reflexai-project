@@ -1,0 +1,100 @@
+# Interview demo for Scenario A ("right config, wrong image") on gcp-dev.
+#
+# legacy-order: reproduce the incident. Change config on the running service
+#   FIRST (what the old "terraform apply, then build + deploy" job did), with
+#   the image that doesn't know the new value. Cloud Run makes a revision with
+#   new config + old image, and every tenant gets 500s.
+#
+# guarded: the same config change, but with CONFIG_VALIDATION=startup (the
+#   default). The new revision fails its startup probe, Cloud Run never moves
+#   traffic to it, and users see nothing.
+#
+# recover: redeploy the current version through the normal release path.
+name: "Demo: Scenario A"
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [legacy-order, guarded, recover]
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+  deployments: write
+
+env:
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ vars.GCP_REGION }}
+  SVC: rehearse-dev-api
+
+jobs:
+  demo:
+    if: inputs.mode != 'recover'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: gcp-dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Push a config value the running image doesn't understand
+        run: |
+          vars="SCORING_RUBRIC=rubric-c"
+          [[ "${{ inputs.mode }}" == "legacy-order" ]] && vars="$vars,CONFIG_VALIDATION=lazy"
+          echo "Updating $SVC env: $vars (image unchanged)"
+          set +e
+          gcloud run services update "$SVC" --project "$GCP_PROJECT_ID" --region "$GCP_REGION" \
+            --container api --update-env-vars "$vars" --revision-suffix "demo-$(date +%s)" --update-labels app=rehearse-demo --quiet
+          echo "gcloud exit code: $? (non-zero means the new revision never became ready)"
+          exit 0
+      - name: Probe what users see for 60 seconds
+        run: |
+          url="$(gcloud run services describe "$SVC" --project "$GCP_PROJECT_ID" --region "$GCP_REGION" --format='value(status.url)')"
+          ok=0; err=0
+          for _ in $(seq 1 30); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' -H 'x-tenant-id: acme-crisis-line' "$url/api/stats")"
+            if [[ "$code" == "200" ]]; then ok=$((ok + 1)); else err=$((err + 1)); fi
+            sleep 2
+          done
+          {
+            echo "### Scenario A demo: ${{ inputs.mode }}"
+            echo "Requests to /api/stats over 60s: **$ok OK**, **$err errors**"
+            echo
+            echo "Serving traffic:"
+            gcloud run services describe "$SVC" --project "$GCP_PROJECT_ID" --region "$GCP_REGION" --format=json \
+              | jq -r '.status.traffic[] | "- \(.revisionName): \(.percent)%"'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  recover-version:
+    if: inputs.mode == 'recover'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - id: v
+        # The last revision created by a real release carries the version label.
+        run: |
+          v="$(gcloud run revisions list --service rehearse-dev-web --project "$GCP_PROJECT_ID" --region "$GCP_REGION" \
+            --format=json | jq -r '[.[] | select(.metadata.labels["rehearse-version"])] | sort_by(.metadata.creationTimestamp) | last | .metadata.labels["rehearse-version"]')"
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+  recover:
+    if: inputs.mode == 'recover'
+    needs: recover-version
+    uses: ./.github/workflows/deploy-gcp.yml
+    secrets: inherit
+    with:
+      environment: dev
+      version: ${{ needs.recover-version.outputs.version }}

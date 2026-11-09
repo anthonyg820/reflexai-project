@@ -1,0 +1,95 @@
+{
+  "family": "${SERVICE_NAME}",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "256",
+  "memory": "1024",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "executionRoleArn": "arn:aws:iam::${ACCOUNT_ID}:role/${NAME_PREFIX}-ecs-exec",
+  "taskRoleArn": "arn:aws:iam::${ACCOUNT_ID}:role/${SERVICE_NAME}-task",
+  "tags": [
+    {
+      "key": "rehearse-version",
+      "value": "${VERSION}"
+    }
+  ],
+  "containerDefinitions": [
+    {
+      "name": "web",
+      "image": "${IMAGE}",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "OTEL_EXPORTER_OTLP_ENDPOINT",
+          "value": "http://localhost:4318"
+        },
+        {
+          "name": "API_URL",
+          "value": "${API_URL}"
+        },
+        {
+          "name": "DEPLOY_ENV",
+          "value": "${ENV}"
+        },
+        {
+          "name": "CLOUD_PROVIDER",
+          "value": "aws"
+        }
+      ],
+      "dependsOn": [
+        {
+          "containerName": "collector",
+          "condition": "START"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/${SERVICE_NAME}",
+          "awslogs-region": "${REGION}",
+          "awslogs-stream-prefix": "web"
+        }
+      }
+    },
+    {
+      "name": "collector",
+      "image": "${COLLECTOR_IMAGE}",
+      "essential": false,
+      "environment": [
+        {
+          "name": "GRAFANA_OTLP_ENDPOINT",
+          "value": "${GRAFANA_OTLP_ENDPOINT}"
+        },
+        {
+          "name": "GRAFANA_OTLP_INSTANCE_ID",
+          "value": "${GRAFANA_OTLP_INSTANCE_ID}"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "GRAFANA_OTLP_TOKEN",
+          "valueFrom": "arn:aws:ssm:${REGION}:${ACCOUNT_ID}:parameter/rehearse/${ENV}/grafana-otlp-token"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/${SERVICE_NAME}",
+          "awslogs-region": "${REGION}",
+          "awslogs-stream-prefix": "collector"
+        }
+      }
+    }
+  ]
+}

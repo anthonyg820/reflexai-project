@@ -1,0 +1,52 @@
+# Roll an environment back to its previous release.
+#   GCP: traffic moves to the previous ready revision (seconds, no new revision)
+#   AWS: the service goes back to the previous task definition revision
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      cloud:
+        type: choice
+        options: [gcp, aws]
+        required: true
+      environment:
+        type: choice
+        options: [dev, uat, prod]
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+  deployments: write
+
+jobs:
+  rollback:
+    name: Roll back ${{ inputs.cloud }}-${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: ${{ inputs.cloud }}-${{ inputs.environment }}
+    env:
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION }}
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+    steps:
+      - if: inputs.cloud == 'aws' && inputs.environment == 'dev'
+        run: echo "::error::There is no aws-dev environment (dev is GCP only)" && exit 1
+      - uses: actions/checkout@v4
+      - if: inputs.cloud == 'gcp'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+      - if: inputs.cloud == 'gcp'
+        uses: google-github-actions/setup-gcloud@v2
+      - if: inputs.cloud == 'aws'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOYER_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - run: bash deploy/scripts/rollback.sh "${{ inputs.cloud }}" "${{ inputs.environment }}"
+      - run: echo "Now serving $(bash deploy/scripts/current-version.sh "${{ inputs.cloud }}" "${{ inputs.environment }}")" >> "$GITHUB_STEP_SUMMARY"

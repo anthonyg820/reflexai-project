@@ -1,0 +1,44 @@
+{
+  "family": "${SERVICE_NAME}",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "1024",
+  "runtimePlatform": { "cpuArchitecture": "X86_64", "operatingSystemFamily": "LINUX" },
+  "executionRoleArn": "arn:aws:iam::${ACCOUNT_ID}:role/${NAME_PREFIX}-ecs-exec",
+  "taskRoleArn": "arn:aws:iam::${ACCOUNT_ID}:role/${SERVICE_NAME}-task",
+  "tags": [{ "key": "rehearse-version", "value": "${VERSION}" }],
+  "containerDefinitions": [
+    {
+      "name": "api",
+      "image": "${IMAGE}",
+      "essential": true,
+      "portMappings": [{ "containerPort": 8080, "protocol": "tcp" }],
+      "environment": [{ "name": "OTEL_EXPORTER_OTLP_ENDPOINT", "value": "http://localhost:4318" }],
+      "secrets": [
+        { "name": "DATABASE_URL", "valueFrom": "arn:aws:ssm:${REGION}:${ACCOUNT_ID}:parameter/rehearse/${ENV}/database-url" }
+      ],
+      "dependsOn": [{ "containerName": "collector", "condition": "START" }],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": { "awslogs-group": "/ecs/${SERVICE_NAME}", "awslogs-region": "${REGION}", "awslogs-stream-prefix": "api" }
+      }
+    },
+    {
+      "name": "collector",
+      "image": "${COLLECTOR_IMAGE}",
+      "essential": false,
+      "environment": [
+        { "name": "GRAFANA_OTLP_ENDPOINT", "value": "${GRAFANA_OTLP_ENDPOINT}" },
+        { "name": "GRAFANA_OTLP_INSTANCE_ID", "value": "${GRAFANA_OTLP_INSTANCE_ID}" }
+      ],
+      "secrets": [
+        { "name": "GRAFANA_OTLP_TOKEN", "valueFrom": "arn:aws:ssm:${REGION}:${ACCOUNT_ID}:parameter/rehearse/${ENV}/grafana-otlp-token" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": { "awslogs-group": "/ecs/${SERVICE_NAME}", "awslogs-region": "${REGION}", "awslogs-stream-prefix": "collector" }
+      }
+    }
+  ]
+}

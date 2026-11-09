@@ -1,0 +1,64 @@
+# Reusable: deploy one version (git SHA) to one Cloud Run environment.
+# Checks out THAT version so the revision spec and runtime config come from
+# the same commit as the image. api first, then web.
+name: Deploy (GCP)
+
+on:
+  workflow_call:
+    inputs:
+      environment: { type: string, required: true, description: "dev | uat | prod" }
+      version: { type: string, required: true, description: "git SHA to deploy" }
+      canary: { type: boolean, default: false }
+
+permissions:
+  contents: read
+  id-token: write
+  deployments: write
+
+jobs:
+  deploy:
+    name: gcp-${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: gcp-${{ inputs.environment }}
+    concurrency:
+      group: deploy-gcp-${{ inputs.environment }}
+      cancel-in-progress: false
+    env:
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION }}
+      GRAFANA_OTLP_ENDPOINT: ${{ vars.GRAFANA_OTLP_ENDPOINT }}
+      GRAFANA_OTLP_INSTANCE_ID: ${{ vars.GRAFANA_OTLP_INSTANCE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile && pnpm --filter @rehearse/config build
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - uses: imjasonh/setup-crane@v0.4
+      - run: gcloud auth print-access-token | crane auth login "${GCP_REGION}-docker.pkg.dev" -u oauth2accesstoken --password-stdin
+      - run: printf '### gcp-%s\n| env | service | version | digest | url |\n|---|---|---|---|---|\n' "${{ inputs.environment }}" >> "$GITHUB_STEP_SUMMARY"
+      - name: Deploy api
+        run: bash deploy/scripts/gcp-deploy.sh "${{ inputs.environment }}" api "${{ inputs.version }}" "${{ inputs.canary }}"
+      - name: Deploy web
+        run: bash deploy/scripts/gcp-deploy.sh "${{ inputs.environment }}" web "${{ inputs.version }}" "${{ inputs.canary }}"
+      - name: Grafana deploy annotation
+        if: always() && vars.GRAFANA_URL != ''
+        env:
+          GRAFANA_URL: ${{ vars.GRAFANA_URL }}
+          TOKEN: ${{ secrets.GRAFANA_ANNOTATION_TOKEN }}
+          STATUS: ${{ job.status }}
+        run: |
+          [[ -n "$TOKEN" ]] || exit 0
+          curl -fsS -X POST "$GRAFANA_URL/api/annotations" -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' \
+            -d "{\"tags\":[\"deploy\",\"gcp\",\"${{ inputs.environment }}\"],\"text\":\"gcp-${{ inputs.environment }} ${{ inputs.version }} ($STATUS)\"}"

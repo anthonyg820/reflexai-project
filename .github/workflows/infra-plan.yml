@@ -1,0 +1,92 @@
+# Plan on pull request: format checks, then `terragrunt run --all plan` per
+# cloud, posted as a sticky PR comment. Small per-component states keep these
+# plans fast and readable.
+name: Infra plan
+
+on:
+  pull_request:
+    paths: ["infra/**", ".github/workflows/infra-*.yml", ".github/actions/setup-iac/**"]
+
+concurrency:
+  group: infra-plan-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+env:
+  TG_NON_INTERACTIVE: "true"
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ vars.GCP_REGION }}
+  GCP_WIF_PROVIDER: ${{ vars.GCP_WIF_PROVIDER }}
+  GCP_TERRAFORM_SA: ${{ vars.GCP_TERRAFORM_SA }}
+  AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  AWS_TERRAFORM_ROLE_ARN: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+
+jobs:
+  fmt:
+    name: Format & lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.13.4"
+      - run: terraform fmt -check -recursive -diff infra/modules
+      - name: terragrunt hcl fmt
+        run: |
+          curl -fsSL -o /usr/local/bin/terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v0.99.5/terragrunt_linux_amd64
+          chmod +x /usr/local/bin/terragrunt
+          cd infra/live && terragrunt hcl fmt --check
+      - name: terraform validate (modules)
+        run: |
+          for m in infra/modules/*/; do
+            (cd "$m" && terraform init -backend=false -input=false >/dev/null && terraform validate -no-color) || exit 1
+          done
+
+  plan:
+    name: Plan ${{ matrix.cloud }}
+    needs: fmt
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud: [gcp, aws]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-iac
+        with:
+          cloud: ${{ matrix.cloud }}
+      - name: terragrunt run --all plan
+        id: plan
+        working-directory: infra/live/${{ matrix.cloud }}
+        run: |
+          set -o pipefail
+          terragrunt run --all -- plan -lock=false -no-color 2>&1 | tee /tmp/plan.txt
+      - name: Comment plan on PR
+        if: always() && steps.plan.outcome != 'skipped'
+        uses: actions/github-script@v7
+        env:
+          CLOUD: ${{ matrix.cloud }}
+          OUTCOME: ${{ steps.plan.outcome }}
+        with:
+          script: |
+            const fs = require("fs");
+            const raw = fs.existsSync("/tmp/plan.txt") ? fs.readFileSync("/tmp/plan.txt", "utf8") : "(no output)";
+            const summary = raw.split("\n").filter(l => /Plan:|No changes|Error/.test(l)).join("\n") || "(see log)";
+            const body = [
+              `<!-- infra-plan-${process.env.CLOUD} -->`,
+              `### Terragrunt plan: \`${process.env.CLOUD}\` (${process.env.OUTCOME})`,
+              "```", summary.slice(0, 3000), "```",
+              "<details><summary>Full plan</summary>\n\n```", raw.slice(-55000), "```\n</details>",
+            ].join("\n");
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            const mine = comments.find(c => c.body.startsWith(`<!-- infra-plan-${process.env.CLOUD} -->`));
+            if (mine) await github.rest.issues.updateComment({ owner, repo, comment_id: mine.id, body });
+            else await github.rest.issues.createComment({ owner, repo, issue_number, body });

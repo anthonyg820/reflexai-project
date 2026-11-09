@@ -1,0 +1,62 @@
+# Reusable: deploy one version (git SHA) to one ECS environment.
+# Checks out THAT version so the revision spec and runtime config come from
+# the same commit as the image. api first, then web.
+name: Deploy (AWS)
+
+on:
+  workflow_call:
+    inputs:
+      environment: { type: string, required: true, description: "dev | uat | prod" }
+      version: { type: string, required: true, description: "git SHA to deploy" }
+
+permissions:
+  contents: read
+  id-token: write
+  deployments: write
+
+jobs:
+  deploy:
+    name: aws-${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: aws-${{ inputs.environment }}
+    concurrency:
+      group: deploy-aws-${{ inputs.environment }}
+      cancel-in-progress: false
+    env:
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      GRAFANA_OTLP_ENDPOINT: ${{ vars.GRAFANA_OTLP_ENDPOINT }}
+      GRAFANA_OTLP_INSTANCE_ID: ${{ vars.GRAFANA_OTLP_INSTANCE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.version }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile && pnpm --filter @rehearse/config build
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOYER_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - uses: imjasonh/setup-crane@v0.4
+      - run: aws ecr get-login-password | crane auth login "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com" -u AWS --password-stdin
+      - run: printf '### aws-%s\n| env | service | version | digest | url |\n|---|---|---|---|---|\n' "${{ inputs.environment }}" >> "$GITHUB_STEP_SUMMARY"
+      - name: Deploy api
+        run: bash deploy/scripts/aws-deploy.sh "${{ inputs.environment }}" api "${{ inputs.version }}"
+      - name: Deploy web
+        run: bash deploy/scripts/aws-deploy.sh "${{ inputs.environment }}" web "${{ inputs.version }}"
+      - name: Grafana deploy annotation
+        if: always() && vars.GRAFANA_URL != ''
+        env:
+          GRAFANA_URL: ${{ vars.GRAFANA_URL }}
+          TOKEN: ${{ secrets.GRAFANA_ANNOTATION_TOKEN }}
+          STATUS: ${{ job.status }}
+        run: |
+          [[ -n "$TOKEN" ]] || exit 0
+          curl -fsS -X POST "$GRAFANA_URL/api/annotations" -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' \
+            -d "{\"tags\":[\"deploy\",\"aws\",\"${{ inputs.environment }}\"],\"text\":\"aws-${{ inputs.environment }} ${{ inputs.version }} ($STATUS)\"}"

@@ -1,0 +1,44 @@
+# Apply on merge. Terragrunt applies units in dependency order; units with no
+# changes are no-ops.
+name: Infra apply
+
+on:
+  push:
+    branches: [main]
+    paths: ["infra/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  TG_NON_INTERACTIVE: "true"
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ vars.GCP_REGION }}
+  GCP_WIF_PROVIDER: ${{ vars.GCP_WIF_PROVIDER }}
+  GCP_TERRAFORM_SA: ${{ vars.GCP_TERRAFORM_SA }}
+  AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  AWS_TERRAFORM_ROLE_ARN: ${{ vars.AWS_TERRAFORM_ROLE_ARN }}
+
+jobs:
+  apply:
+    name: Apply ${{ matrix.cloud }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: infra-${{ matrix.cloud }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud: [gcp, aws]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-iac
+        with:
+          cloud: ${{ matrix.cloud }}
+      - name: terragrunt run --all apply
+        working-directory: infra/live/${{ matrix.cloud }}
+        run: terragrunt run --all -- apply -no-color # run --all adds -auto-approve

@@ -1,0 +1,71 @@
+# Full stack locally: web, api, Postgres and Grafana's all-in-one OTel backend
+# (Collector + Tempo + Loki + Prometheus + Grafana).
+#
+#   docker compose up --build
+#   web      http://localhost:3000
+#   api      http://localhost:8080/healthz
+#   grafana  http://localhost:3001   (admin / admin)
+#
+# Hot-reload alternative: `docker compose up postgres lgtm` then `pnpm dev`
+# with apps/api/.env.example values.
+name: rehearse
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: rehearse
+      POSTGRES_DB: rehearse
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rehearse"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  lgtm:
+    image: grafana/otel-lgtm:0.11.0
+    ports:
+      - "3001:3000" # Grafana
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      args: { GIT_SHA: local }
+    environment:
+      DEPLOY_ENV: local
+      CLOUD_PROVIDER: local
+      DATABASE_URL: postgres://postgres:rehearse@postgres:5432/rehearse
+      MIGRATE_ON_START: "true"
+      SCORING_RUBRIC: rubric-a
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://lgtm:4318
+      OTEL_METRIC_EXPORT_INTERVAL: "5000"
+    ports: ["8080:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      lgtm: { condition: service_started }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/healthz || exit 1"]
+      interval: 3s
+      retries: 20
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args: { GIT_SHA: local }
+    environment:
+      API_URL: http://api:8080
+      DEPLOY_ENV: local
+      CLOUD_PROVIDER: local
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://lgtm:4318
+    ports: ["3000:8080"]
+    depends_on:
+      api: { condition: service_healthy }
+
+volumes:
+  pgdata:

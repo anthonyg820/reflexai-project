@@ -1,0 +1,41 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommits", "helpers:pinGitHubActionDigests"],
+  "timezone": "America/New_York",
+  "schedule": ["before 6am on monday"],
+  "prConcurrentLimit": 5,
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "description": "Low risk: patch/minor dev tooling merges itself once required checks pass",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": true,
+      "addLabels": ["risk:low"]
+    },
+    {
+      "description": "Runtime patches also auto-merge; they still go dev -> UAT -> prod via promotion",
+      "matchDepTypes": ["dependencies"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "addLabels": ["risk:low"]
+    },
+    {
+      "description": "Group the OpenTelemetry family so versions stay compatible",
+      "matchPackageNames": ["@opentelemetry/**", "@vercel/otel"],
+      "groupName": "opentelemetry"
+    },
+    {
+      "description": "Majors need a code owner and are batched weekly",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "addLabels": ["risk:high"]
+    },
+    {
+      "description": "Terraform providers: plan on PR, human review",
+      "matchManagers": ["terraform", "terragrunt"],
+      "automerge": false,
+      "addLabels": ["infra"]
+    }
+  ]
+}
