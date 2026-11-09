@@ -20,4 +20,4 @@ In Scenario A this fires about 2 minutes after the bad revision takes traffic, b
 reports it. The deploy annotation on the dashboard shows which release caused it.
 
 Add a synthetic check too (Testing & synthetics → Synthetics → Add check → HTTP) on
-`<web url>/healthz` for each cloud's prod, every 1 minute, from 2 probes.
+`<web url>/health` for each cloud's prod, every 1 minute, from 2 probes.

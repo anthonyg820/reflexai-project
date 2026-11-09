@@ -26,7 +26,7 @@ describe.skipIf(!url)("API (e2e)", () => {
 
     const config = loadApiConfig({ DEPLOY_ENV: "local", CLOUD_PROVIDER: "local", DATABASE_URL: url, LOG_LEVEL: "error" });
     app = await NestFactory.create(AppModule.forRoot(config), { logger: false });
-    app.setGlobalPrefix("api", { exclude: ["healthz"] });
+    app.setGlobalPrefix("api", { exclude: ["health"] });
     await app.init();
   });
 
@@ -34,8 +34,8 @@ describe.skipIf(!url)("API (e2e)", () => {
     await app?.close();
   });
 
-  it("serves /healthz without a tenant", async () => {
-    const res = await request(app.getHttpServer()).get("/healthz").expect(200);
+  it("serves /health without a tenant", async () => {
+    const res = await request(app.getHttpServer()).get("/health").expect(200);
     expect(res.body).toMatchObject({ status: "ok", rubric: "rubric-a" });
   });
 

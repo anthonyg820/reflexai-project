@@ -50,7 +50,7 @@ resource "aws_lb_target_group" "service" {
   deregistration_delay = 15
 
   health_check {
-    path                = "/healthz"
+    path                = "/health"
     matcher             = "200"
     interval            = 10
     healthy_threshold   = 2

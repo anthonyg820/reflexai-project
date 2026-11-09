@@ -316,7 +316,7 @@ Add-Command 'up' 'Run locally' 'Run the full stack in Docker: web :3000, api :80
     Exec { node scripts/grafana-import.mjs }
     Write-Host ''
     Write-Host '  web      http://localhost:3000'
-    Write-Host '  api      http://localhost:8080/healthz'
+    Write-Host '  api      http://localhost:8080/health'
     Write-Host '  grafana  http://localhost:3001  (admin / admin)'
 }
 Add-Command 'down' 'Run locally' 'Stop the Docker stack (keeps the database volume)' { Exec { docker compose down } }
@@ -417,8 +417,8 @@ Add-Command 'scenario-a' 'Scenario A, locally' 'Show both behaviours locally: la
             -WorkingDirectory (Join-Path $PSScriptRoot 'apps/api') -NoNewWindow -PassThru -RedirectStandardOutput $log -RedirectStandardError "$log.err"
     }
     try {
-        for ($i = 0; $i -lt 20; $i++) { if ((Get-HttpStatus 'http://localhost:8099/healthz') -eq 200) { break }; Start-Sleep -Milliseconds 500 }
-        Write-Host "   /healthz       -> $(Get-HttpStatus 'http://localhost:8099/healthz') (looks healthy, so it gets traffic)"
+        for ($i = 0; $i -lt 20; $i++) { if ((Get-HttpStatus 'http://localhost:8099/health') -eq 200) { break }; Start-Sleep -Milliseconds 500 }
+        Write-Host "   /health       -> $(Get-HttpStatus 'http://localhost:8099/health') (looks healthy, so it gets traffic)"
         Write-Host "   /api/stats     -> $(Get-HttpStatus 'http://localhost:8099/api/stats' $tenant) (every tenant gets server errors)"
     }
     finally { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }

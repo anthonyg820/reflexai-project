@@ -40,7 +40,7 @@ fi
 
 base="http://${alb_dns}"
 if [[ "$service" == "api" ]]; then
-  # /healthz on the ALB goes to web; check the api through its /api/* rule.
+  # /health on the ALB goes to web; check the api through its /api/* rule.
   curl -fsS --max-time 10 -H 'x-tenant-id: acme-crisis-line' "$base/api/stats" >/dev/null || die "api smoke failed"
   log "smoke OK: api @ $base/api"
 else

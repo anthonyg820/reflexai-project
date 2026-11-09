@@ -18,6 +18,7 @@ permissions:
 
 env:
   TG_NON_INTERACTIVE: "true"
+  TG_NO_COLOR: "true" # plain text in PR comments and logs
   GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
   GCP_REGION: ${{ vars.GCP_REGION }}
   GCP_WIF_PROVIDER: ${{ vars.GCP_WIF_PROVIDER }}

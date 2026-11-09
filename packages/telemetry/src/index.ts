@@ -54,7 +54,7 @@ export function startTelemetry(opts: TelemetryOptions): NodeSDK | undefined {
         "@opentelemetry/instrumentation-dns": { enabled: false },
         "@opentelemetry/instrumentation-net": { enabled: false },
         "@opentelemetry/instrumentation-http": {
-          ignoreIncomingRequestHook: (req) => req.url === "/healthz",
+          ignoreIncomingRequestHook: (req) => req.url === "/health",
         },
       }),
     ],
