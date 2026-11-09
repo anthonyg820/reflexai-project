@@ -17,8 +17,8 @@ $settings = Read-Settings
 $region = if ($settings.GCP_REGION) { $settings.GCP_REGION } else { 'us-east1' }
 
 Step 'Signing in to Google Cloud (a browser window will open)'
-$account = (& gcloud auth list --filter=status:ACTIVE --format='value(account)' 2>$null | Out-String).Trim()
-if (-not $account) { Native { gcloud auth login --brief } ; $account = (& gcloud auth list --filter=status:ACTIVE --format='value(account)' | Out-String).Trim() }
+$account = Capture { gcloud auth list --filter=status:ACTIVE --format='value(account)' }
+if (-not $account) { Native { gcloud auth login --brief } ; $account = Capture { gcloud auth list --filter=status:ACTIVE --format='value(account)' } }
 Write-Host "  signed in as $account"
 
 Step 'Choosing the project'
@@ -27,7 +27,7 @@ if (-not $project) {
     $suffix = -join ((48..57) + (97..122) | Get-Random -Count 6 | ForEach-Object { [char]$_ })
     $project = "rehearse-$suffix"
 }
-$exists = (& gcloud projects describe $project --format='value(projectId)' 2>$null | Out-String).Trim()
+$exists = Capture { gcloud projects describe $project --format='value(projectId)' }
 if (-not $exists) {
     Write-Host "  creating project $project"
     Native { gcloud projects create $project --name 'Rehearse' }
@@ -36,7 +36,7 @@ Save-Setting 'GCP_PROJECT_ID' $project
 Save-Setting 'GCP_REGION' $region
 
 Step 'Linking billing'
-$linked = (& gcloud billing projects describe $project --format='value(billingEnabled)' 2>$null | Out-String).Trim()
+$linked = Capture { gcloud billing projects describe $project --format='value(billingEnabled)' }
 if ($linked -ne 'True') {
     $accounts = @(& gcloud billing accounts list --filter='open=true' --format='value(name,displayName)' | Where-Object { $_ })
     if ($accounts.Count -eq 0) { throw 'No open billing account. Create one at https://console.cloud.google.com/billing, then re-run this step.' }

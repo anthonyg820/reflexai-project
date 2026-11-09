@@ -16,9 +16,7 @@ $settings = Read-Settings
 $region = if ($settings.AWS_REGION) { $settings.AWS_REGION } else { 'us-east-1' }
 
 Step 'Checking AWS credentials'
-$previous = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
-$account = (& aws sts get-caller-identity --query Account --output text 2>$null | Out-String).Trim()
-$ErrorActionPreference = $previous
+$account = Capture { aws sts get-caller-identity --query Account --output text }
 if (-not $account -or $account -notmatch '^\d{12}$') {
     Write-Host '  No working credentials. Enter the access key of an IAM user with AdministratorAccess.'
     Write-Host "  Use region $region and output format json."

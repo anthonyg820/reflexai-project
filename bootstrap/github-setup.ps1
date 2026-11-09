@@ -17,9 +17,7 @@ foreach ($k in 'GCP_PROJECT_ID', 'GCP_REGION', 'AWS_ACCOUNT_ID', 'AWS_REGION', '
 $env:GCP_PROJECT_ID = $settings.GCP_PROJECT_ID; $env:AWS_ACCOUNT_ID = $settings.AWS_ACCOUNT_ID
 
 Step 'Signing in to GitHub'
-$previous = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
-& gh auth status 2>$null | Out-Null; $ok = $LASTEXITCODE -eq 0
-$ErrorActionPreference = $previous
+Capture { gh auth status } | Out-Null; $ok = $LASTEXITCODE -eq 0
 if (-not $ok) { & gh auth login --web --git-protocol https }
 $repo = (& gh repo view --json nameWithOwner -q .nameWithOwner | Out-String).Trim()
 Write-Host "  repository $repo"
@@ -55,9 +53,7 @@ function Put-Environment([string] $Name, [hashtable] $Body) {
     $json = ($Body | ConvertTo-Json -Depth 5 -Compress)
     $json | & gh api -X PUT "repos/$repo/environments/$Name" --input - | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "could not create environment $Name" }
-    $previous = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
-    & gh api -X POST "repos/$repo/environments/$Name/deployment-branch-policies" -f name=main 2>$null | Out-Null
-    $ErrorActionPreference = $previous
+    Capture { gh api -X POST "repos/$repo/environments/$Name/deployment-branch-policies" -f name=main } | Out-Null
     Write-Host "  $Name"
 }
 

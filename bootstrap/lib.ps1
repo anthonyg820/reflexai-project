@@ -31,3 +31,10 @@ function Save-Setting([string] $Key, [string] $Value) {
     foreach ($k in ($s.Keys | Sort-Object)) { $lines += "$k=$($s[$k])" }
     Set-Content -Path $SettingsFile -Value $lines -Encoding ascii
 }
+
+function Capture([scriptblock] $Command) {
+    # Run a native command for its output only. Stderr is discarded and never fatal:
+    # Windows PowerShell 5.1 turns redirected stderr into terminating errors otherwise.
+    $previous = $ErrorActionPreference; $ErrorActionPreference = 'SilentlyContinue'
+    try { return ((& $Command 2>$null) | Out-String).Trim() } catch { return '' } finally { $ErrorActionPreference = $previous }
+}

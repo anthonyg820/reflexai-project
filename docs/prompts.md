@@ -108,3 +108,19 @@ Let's begin Monday's work now so we can get a bit ahead of schedule.
 ### 17. Sun 2026-11-08 21:11
 
 Check your github connection now
+
+---
+
+### 18. Sun 2026-11-08 21:33
+
+Running 2-gcp-setup.cmd gives me this error:
+
+==> Signing in to Google Cloud (a browser window will open)
+ERROR: WARNING: The following filter keys were not present in any resource : status
+Press any key to continue . . .
+
+---
+
+### 19. Sun 2026-11-08 21:41
+
+Should the .terraform.lock.hcl files be included in the .gitignore?
