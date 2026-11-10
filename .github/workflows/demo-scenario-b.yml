@@ -58,6 +58,13 @@ jobs:
         with:
           node-version-file: .nvmrc
 
+      - name: Make sure the labels the demo PRs use exist
+        if: inputs.mode == 'open'
+        # gh pr create --label fails on a label the repo doesn't have yet.
+        run: |
+          gh label create dependencies --color 0366d6 --description "Dependency updates" --force
+          gh label create agent --color 8250df --description "Opened by an AI agent" --force
+
       - name: Create the base branch (a copy of main)
         if: inputs.mode == 'open'
         run: |
