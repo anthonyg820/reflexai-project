@@ -15,7 +15,7 @@ release (GCP / AWS tabs) · 5 CI/CD (click a phase for details; `A` approves pro
 7 Problem 2 · 8 the review policy · 9 live demo, whose links go straight to the app, Actions and
 Grafana.
 Appendix (optional, for questions): A1 bootstrap · A2 Terraform modules · A3 Terragrunt
-environments · A4 GitHub Actions workflows. `→` past slide 9 or `End`.
+environments · A4 databases · A5 observability · A6 GitHub Actions workflows. `→` past slide 9 or `End`.
 
 **The day before:** promote the latest release so UAT and prod have every fix (**Promote**
 `target=uat`, then `target=prod` and approve), and do one practice run of each scenario.
