@@ -9,7 +9,7 @@
 <body>
 <!--
   Interview summary, shown before the live demo. Open this file directly in a browser
-  (no build step, no network needed). Keys: ← → / space / PageUp / PageDown, 1-9 to jump,
+  (no build step, no network needed). Keys: ← → / space / PageUp / PageDown, 1-9 to jump (10-12 are an optional appendix: arrows or End),
   A to approve prod on slide 5 (click a stage for details; ↑ ↓ switch, Esc closes), F for full screen. Links for the last slide: links.js
   (copy links.example.js; links.js is git-ignored).
 -->
@@ -23,7 +23,7 @@
   <div class="chrome-top" id="counter" aria-live="polite">01 / 09</div>
 
   <!-- 1 · Goal -->
-  <section class="slide s-goal is-active" aria-label="1 of 9: Goal">
+  <section class="slide s-goal is-active" aria-label="1 of 12: Goal">
     <div class="orbit" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b><b></b></div>
     <div class="content">
       <p class="eyebrow reveal" style="--d:0">ReflexAI · Senior Platform Engineer · technical deep dive</p>
@@ -38,7 +38,7 @@
   </section>
 
   <!-- 2 · The app -->
-  <section class="slide s-app" aria-label="2 of 9: The RehearseAI app">
+  <section class="slide s-app" aria-label="2 of 12: The RehearseAI app">
     <header>
       <p class="eyebrow reveal" style="--d:0">The app</p>
       <h1 class="h-l reveal" style="--d:1; font-size:46px">RehearseAI: practice the hard conversations.</h1>
@@ -101,7 +101,7 @@
   </section>
 
   <!-- 3 · Stack & architecture -->
-  <section class="slide s-stack" aria-label="3 of 9: Stack and architecture">
+  <section class="slide s-stack" aria-label="3 of 12: Stack and architecture">
     <header class="slide-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Stack &amp; architecture</p>
@@ -144,7 +144,7 @@
   </section>
 
   <!-- 4 · One digest, one release (GCP / AWS tabs) -->
-  <section class="slide s-release" aria-label="4 of 9: One digest, one release">
+  <section class="slide s-release" aria-label="4 of 12: One digest, one release">
     <header>
       <p class="eyebrow reveal" style="--d:0">Stack &amp; architecture · the release</p>
       <h1 class="h-l reveal" style="--d:1; font-size:42px">One digest. One release.</h1>
@@ -242,7 +242,7 @@
   </section>
 
   <!-- 5 · CI/CD -->
-  <section class="slide s-pipeline" aria-label="5 of 9: CI/CD from dev to UAT to prod">
+  <section class="slide s-pipeline" aria-label="5 of 12: CI/CD from dev to UAT to prod">
     <header class="slide-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">CI/CD · dev → UAT → prod</p>
@@ -475,7 +475,7 @@
   </section>
 
   <!-- 6 · Scenario A -->
-  <section class="slide s-a" aria-label="6 of 9: Right config, wrong image">
+  <section class="slide s-a" aria-label="6 of 12: Right config, wrong image">
     <header class="slide-head">
       <div>
         <p class="eyebrow warn reveal" style="--d:0">Problem 1</p>
@@ -516,7 +516,7 @@
   </section>
 
   <!-- 7 · Scenario B -->
-  <section class="slide s-b" aria-label="7 of 9: The review queue">
+  <section class="slide s-b" aria-label="7 of 12: The review queue">
     <header>
       <p class="eyebrow warn reveal" style="--d:0">Problem 2</p>
       <h1 class="h-l reveal" style="--d:1">The review queue.</h1>
@@ -546,7 +546,7 @@
   </section>
 
   <!-- 8 · Review policy (Problem 2, in detail) -->
-  <section class="slide s-policy" aria-label="8 of 9: The review policy">
+  <section class="slide s-policy" aria-label="8 of 12: The review policy">
     <header class="slide-head">
       <div>
         <p class="eyebrow warn reveal" style="--d:0">Problem 2</p>
@@ -617,7 +617,7 @@
   </section>
 
   <!-- 9 · Live demo -->
-  <section class="slide s-demo" aria-label="9 of 9: Time for a live demo">
+  <section class="slide s-demo" aria-label="9 of 12: Time for a live demo">
     <div class="glow" aria-hidden="true"></div>
     <div class="ripples" aria-hidden="true"><i></i><i></i><i></i></div>
     <div class="countdown" aria-hidden="true"><span>3</span></div>
@@ -635,6 +635,81 @@
       <a class="go-sub" id="link-grafana" href="#" target="_blank" rel="noopener">Grafana</a>
     </div>
   </section>
+
+  <!-- 10 · Appendix: Terraform modules -->
+  <section class="slide s-appx s-modules appendix" aria-label="10 of 12: Terraform modules (appendix)">
+    <header class="appx-head">
+      <div>
+        <p class="eyebrow reveal" style="--d:0">Appendix · infrastructure</p>
+        <h1 class="h-l reveal" style="--d:1">Terraform modules: 12 small building blocks.</h1>
+        <p class="lede reveal" style="--d:2">One module per concern, written once and used by every environment. Terragrunt passes in the per-environment values.</p>
+      </div>
+      <div class="appx-tags reveal" style="--d:2"><i>terraform ≥ 1.10</i><i>google + aws providers</i></div>
+    </header>
+    <div class="mod-grid">
+      <section class="gcp"><div class="col-head"><h2 class="pol-label">GCP · 5 modules</h2><span class="mono">infra/modules/gcp-*</span></div><div class="mods"><div class="mod reveal" style="--d:4"><div class="mod-head"><span class="mono">gcp-project-services</span></div><p>Turns on the GCP APIs everything else needs</p><div class="res"><i class="">project_service</i></div></div><div class="mod reveal" style="--d:5"><div class="mod-head"><span class="mono">gcp-artifact-registry</span></div><p>Docker repo for every image; keeps recent ones, cleans up the rest</p><div class="res"><i class="">artifact_registry_repository</i></div></div><div class="mod reveal" style="--d:6"><div class="mod-head"><span class="mono">gcp-github-wif</span></div><p>Keyless sign-in from GitHub Actions, locked to this repo</p><div class="res"><i class="">workload_identity_pool</i><i class="">pool_provider</i><i class="">service_account</i></div></div><div class="mod reveal" style="--d:7"><div class="mod-head"><span class="mono">gcp-secrets</span></div><p>Secret Manager containers; values are added by a launcher, never in Terraform</p><div class="res"><i class="">secret_manager_secret</i></div></div><div class="mod shell reveal" style="--d:8"><div class="mod-head"><span class="mono">gcp-cloud-run-service</span><em>service shell</em></div><p>The service shell: runtime identity, IAM, secret access. Ignores the revision</p><div class="res"><i class="">cloud_run_v2_service</i><i class="">service_account</i><i class="">iam_member</i></div></div></div></section>
+      <section class="aws"><div class="col-head"><h2 class="pol-label">AWS · 7 modules (deferred)</h2><span class="mono">infra/modules/aws-*</span></div><div class="mods"><div class="mod reveal" style="--d:4"><div class="mod-head"><span class="mono">aws-network</span></div><p>VPC with public subnets. No NAT gateway (cost)</p><div class="res"><i class="">vpc</i><i class="">subnet</i><i class="">internet_gateway</i><i class="">route_table</i></div></div><div class="mod reveal" style="--d:5"><div class="mod-head"><span class="mono">aws-ecr</span></div><p>Image repos with a lifecycle policy</p><div class="res"><i class="">ecr_repository</i><i class="">lifecycle_policy</i></div></div><div class="mod reveal" style="--d:6"><div class="mod-head"><span class="mono">aws-github-oidc</span></div><p>GitHub OIDC provider + deploy role scoped to this repo</p><div class="res"><i class="">openid_connect_provider</i><i class="">iam_role</i></div></div><div class="mod reveal" style="--d:7"><div class="mod-head"><span class="mono">aws-ecs-cluster</span></div><p>Fargate cluster (Spot in UAT) and the task execution role</p><div class="res"><i class="">ecs_cluster</i><i class="">capacity_providers</i><i class="">iam_role</i></div></div><div class="mod reveal" style="--d:8"><div class="mod-head"><span class="mono">aws-alb</span></div><p>Load balancer, listener, path rules to api and web</p><div class="res"><i class="">lb</i><i class="">listener_rule</i><i class="">target_group</i></div></div><div class="mod shell reveal" style="--d:9"><div class="mod-head"><span class="mono">aws-ecs-service</span><em>service shell</em></div><p>The service shell and log group. Ignores the task definition and count</p><div class="res"><i class="">ecs_service</i><i class="">task_definition</i><i class="">log_group</i></div></div><div class="mod reveal" style="--d:10"><div class="mod-head"><span class="mono">aws-ssm-secrets</span></div><p>SSM parameters; Terraform ignores their values</p><div class="res"><i class="">ssm_parameter</i></div></div></div></section>
+    </div>
+    <p class="appx-callout reveal" style="--d:12"><b>The Problem 1 rule, in code:</b> both service shells use <code>lifecycle { ignore_changes = … }</code> on the revision / task definition, so <em>terraform apply</em> can never push config ahead of an image.</p>
+  </section>
+
+  <!-- 11 · Appendix: Terragrunt -->
+  <section class="slide s-appx s-tg appendix" aria-label="11 of 12: Terragrunt environments (appendix)">
+    <header class="appx-head">
+      <div>
+        <p class="eyebrow reveal" style="--d:0">Appendix · infrastructure</p>
+        <h1 class="h-l reveal" style="--d:1">Terragrunt: 25 units, one state each.</h1>
+        <p class="lede reveal" style="--d:2">Every folder is a small unit with its own state file, so a plan touches only what changed and a bad apply has a small blast radius.</p>
+      </div>
+    </header>
+    <div class="tg-grid">
+      <section class="card tg-envs reveal" style="--d:3">
+        <div class="env-table">
+          <span></span><h2 class="pol-label acc">GCP · project rehearse</h2><h2 class="pol-label org">AWS · us-east-1 (deferred)</h2>
+          <div class="env reveal" style="--d:4"><span class="mono">shared/</span><small>once per cloud</small></div><div class="cell gcp reveal" style="--d:4"><div><i class="">services</i><i class="">registry</i><i class="">wif</i></div></div><div class="cell aws reveal" style="--d:4"><div><i class="">network</i><i class="">ecr</i><i class="">oidc</i></div></div><div class="env reveal" style="--d:5"><span class="mono">dev/</span><small>auto on every merge</small></div><div class="cell gcp reveal" style="--d:5"><div><i class="">secrets</i><i class="">api</i><i class="">web</i></div></div><div class="cell empty reveal" style="--d:5">no AWS dev: dev is GCP only</div><div class="env reveal" style="--d:6"><span class="mono">uat/</span><small>one-click promote</small></div><div class="cell gcp reveal" style="--d:6"><div><i class="">secrets</i><i class="">api</i><i class="">web</i></div></div><div class="cell aws reveal" style="--d:6"><div><i class="">secrets</i><i class="">cluster</i><i class="">alb</i><i class="">api</i><i class="">web</i></div><small>Fargate Spot</small></div><div class="env reveal" style="--d:7"><span class="mono">prod/</span><small>approval + canary</small></div><div class="cell gcp reveal" style="--d:7"><div><i class="">secrets</i><i class="">api</i><i class="">web</i></div><small>canary on deploy</small></div><div class="cell aws reveal" style="--d:7"><div><i class="">secrets</i><i class="">cluster</i><i class="">alb</i><i class="">api</i><i class="">web</i></div></div>
+        </div>
+        <div class="tg-deps reveal" style="--d:9">
+          <h2 class="pol-label">Apply order per environment (dependency blocks)</h2>
+          <div class="chain gcp"><span><i>shared/wif</i></span><b>→</b><span><i>secrets</i></span><b>→</b><span><i>api</i><i>web</i></span></div>
+          <div class="chain aws"><span><i>shared/network</i></span><b>→</b><span><i>secrets</i></span><b>→</b><span><i>cluster</i><i>alb</i></span><b>→</b><span><i>api</i><i>web</i></span></div>
+          <p>Each unit reads the outputs it needs from the ones before it; plans use mock outputs, so a fresh environment can still be planned.</p>
+        </div>
+      </section>
+      <div class="tg-side">
+        <section class="card reveal" style="--d:5"><h2 class="pol-label">Layout</h2>
+<pre class="tree">infra/live/
+├─ <b>root.hcl</b>          <i># repo, Terraform version</i>
+├─ gcp/
+│  ├─ <b>cloud.hcl</b>      <i># GCS state, google provider</i>
+│  ├─ _common/       <i># api / web / secrets, once</i>
+│  └─ dev/ uat/ prod/ shared/
+│     └─ env.hcl     <i># env = "uat" …</i>
+└─ aws/
+   ├─ <b class="org">cloud.hcl</b>      <i># S3 state + native lock</i>
+   └─ _common/  uat/  prod/  shared/</pre>
+        </section>
+        <section class="card tg-run reveal" style="--d:6"><h2 class="pol-label">How it runs</h2>
+          <p><code class="acc">terragrunt run --all -- plan</code><br>Infra plan comments on every PR touching <code>infra/</code> · Infra apply on merge · Drift detection nightly</p>
+          <p>Signs in keylessly (WIF / OIDC); AWS joins automatically once <code>AWS_ACCOUNT_ID</code> is set.</p>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · Appendix: workflows -->
+  <section class="slide s-appx s-wf appendix" aria-label="12 of 12: GitHub Actions workflows (appendix)">
+    <header class="appx-head">
+      <div>
+        <p class="eyebrow reveal" style="--d:0">Appendix · automation</p>
+        <h1 class="h-l reveal" style="--d:1">GitHub Actions: 12 workflows, four jobs to do.</h1>
+        <p class="lede reveal" style="--d:2">Every workflow signs in keylessly, pins its tool versions, and runs the same scripts you can run locally with make.</p>
+      </div>
+    </header>
+    <div class="card wf-flow reveal" style="--d:3"><h2 class="pol-label">A change, end to end</h2><span class="">PR</span><b>→</b><span class="acc">CI + Review policy</span><b>→</b><span class="">merge</span><b>→</b><span class="blue">Release → gcp-dev</span><b>→</b><span class="blue">Promote → uat</span><b>→</b><span class="warn">approve</span><b>→</b><span class="blue">Promote → prod (canary)</span></div>
+    <div class="wf-grid"><section class="wf-col acc"><h2 class="pol-label">Every change · 3</h2><div class="wf key reveal" style="--d:4"><b>CI</b><span class="mono trig">pull_request · push main · dispatch</span><span>Lint, types, tests, API e2e, config + render checks, image scan</span></div><div class="wf key reveal" style="--d:5"><b>Review policy</b><span class="mono trig">pull_request_target · review</span><span>Risk label, required status, auto-merge for low risk</span></div><div class="wf reveal" style="--d:6"><b>Infra plan</b><span class="mono trig">pull_request (infra/**)</span><span>terragrunt plan for both clouds, posted to the PR</span></div></section><section class="wf-col blue"><h2 class="pol-label">Ship · 4</h2><div class="wf key reveal" style="--d:7"><b>Release</b><span class="mono trig">push main</span><span>Build once, push by digest, deploy to gcp-dev</span></div><div class="wf key reveal" style="--d:8"><b>Promote</b><span class="mono trig">manual: target uat | prod</span><span>Copies the digest dev → uat → prod; prod waits for approval, then canary</span></div><div class="wf reveal" style="--d:9"><b>Rollback</b><span class="mono trig">manual: cloud, env</span><span>Traffic back to the previous revision in seconds</span></div><div class="wf reveal" style="--d:10"><b>Deploy (GCP) · Deploy (AWS)</b><span class="mono trig">workflow_call</span><span>Reusable: render spec, 0% → smoke → traffic (canary in prod)</span></div></section><section class="wf-col org"><h2 class="pol-label">Infrastructure · 2</h2><div class="wf reveal" style="--d:11"><b>Infra apply</b><span class="mono trig">push main (infra/**) · manual</span><span>terragrunt apply, one cloud at a time</span></div><div class="wf reveal" style="--d:12"><b>Drift detection</b><span class="mono trig">nightly 05:17 ET · manual</span><span>Plans every unit; opens an issue if reality drifted</span></div></section><section class="wf-col warn"><h2 class="pol-label">Interview demos · 2</h2><div class="wf reveal" style="--d:13"><b>Demo: Scenario A</b><span class="mono trig">manual: mode</span><span>legacy-order · guarded · rebuild-drift · recover on gcp-dev</span></div><div class="wf reveal" style="--d:14"><b>Demo: Scenario B</b><span class="mono trig">manual: open | cleanup</span><span>Three PRs against a throwaway branch: low / medium / high</span></div></section></div>
+    <div class="card wf-blocks reveal" style="--d:15"><div><b>Pinned tools</b><span><code>.github/actions/setup-iac</code> pins terraform, terragrunt, crane, the same versions as make</span></div><div><b>Least privilege</b><span>Each workflow asks only for the permissions it uses; one concurrency group per environment</span></div><div><b>Same scripts as local</b><span>render-release.mjs and deploy/scripts/*.sh run in CI and from make</span></div><div><b>AWS switch</b><span>AWS jobs run only once the AWS_ACCOUNT_ID variable exists; GCP-only works today</span></div></div>
+  </section>
+
 
   <nav class="chrome-bottom" aria-label="Slides">
     <div class="progress" aria-hidden="true"><div class="progress-bar" id="progress"></div></div>
