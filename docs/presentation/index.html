@@ -9,7 +9,7 @@
 <body>
 <!--
   Interview summary, shown before the live demo. Open this file directly in a browser
-  (no build step, no network needed). Keys: ← → / space / PageUp / PageDown, 1-9 to jump (10-12 are an optional appendix: arrows or End),
+  (no build step, no network needed). Keys: ← → / space / PageUp / PageDown, 1-9 to jump (10-13 are an optional appendix: arrows or End),
   A to approve prod on slide 5 (click a stage for details; ↑ ↓ switch, Esc closes), F for full screen. Links for the last slide: links.js
   (copy links.example.js; links.js is git-ignored).
 -->
@@ -23,7 +23,7 @@
   <div class="chrome-top" id="counter" aria-live="polite">01 / 09</div>
 
   <!-- 1 · Goal -->
-  <section class="slide s-goal is-active" aria-label="1 of 12: Goal">
+  <section class="slide s-goal is-active" aria-label="1 of 13: Goal">
     <div class="orbit" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b><b></b></div>
     <div class="content">
       <p class="eyebrow reveal" style="--d:0">ReflexAI · Senior Platform Engineer · technical deep dive</p>
@@ -38,7 +38,7 @@
   </section>
 
   <!-- 2 · The app -->
-  <section class="slide s-app" aria-label="2 of 12: The RehearseAI app">
+  <section class="slide s-app" aria-label="2 of 13: The RehearseAI app">
     <header>
       <p class="eyebrow reveal" style="--d:0">The app</p>
       <h1 class="h-l reveal" style="--d:1; font-size:46px">RehearseAI: practice the hard conversations.</h1>
@@ -101,7 +101,7 @@
   </section>
 
   <!-- 3 · Stack & architecture -->
-  <section class="slide s-stack" aria-label="3 of 12: Stack and architecture">
+  <section class="slide s-stack" aria-label="3 of 13: Stack and architecture">
     <header class="slide-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Stack &amp; architecture</p>
@@ -144,7 +144,7 @@
   </section>
 
   <!-- 4 · One digest, one release (GCP / AWS tabs) -->
-  <section class="slide s-release" aria-label="4 of 12: One digest, one release">
+  <section class="slide s-release" aria-label="4 of 13: One digest, one release">
     <header>
       <p class="eyebrow reveal" style="--d:0">Stack &amp; architecture · the release</p>
       <h1 class="h-l reveal" style="--d:1; font-size:42px">One digest. One release.</h1>
@@ -242,7 +242,7 @@
   </section>
 
   <!-- 5 · CI/CD -->
-  <section class="slide s-pipeline" aria-label="5 of 12: CI/CD from dev to UAT to prod">
+  <section class="slide s-pipeline" aria-label="5 of 13: CI/CD from dev to UAT to prod">
     <header class="slide-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">CI/CD · dev → UAT → prod</p>
@@ -475,7 +475,7 @@
   </section>
 
   <!-- 6 · Scenario A -->
-  <section class="slide s-a" aria-label="6 of 12: Right config, wrong image">
+  <section class="slide s-a" aria-label="6 of 13: Right config, wrong image">
     <header class="slide-head">
       <div>
         <p class="eyebrow warn reveal" style="--d:0">Problem 1</p>
@@ -516,7 +516,7 @@
   </section>
 
   <!-- 7 · Scenario B -->
-  <section class="slide s-b" aria-label="7 of 12: The review queue">
+  <section class="slide s-b" aria-label="7 of 13: The review queue">
     <header>
       <p class="eyebrow warn reveal" style="--d:0">Problem 2</p>
       <h1 class="h-l reveal" style="--d:1">The review queue.</h1>
@@ -546,7 +546,7 @@
   </section>
 
   <!-- 8 · Review policy (Problem 2, in detail) -->
-  <section class="slide s-policy" aria-label="8 of 12: The review policy">
+  <section class="slide s-policy" aria-label="8 of 13: The review policy">
     <header class="slide-head">
       <div>
         <p class="eyebrow warn reveal" style="--d:0">Problem 2</p>
@@ -617,7 +617,7 @@
   </section>
 
   <!-- 9 · Live demo -->
-  <section class="slide s-demo" aria-label="9 of 12: Time for a live demo">
+  <section class="slide s-demo" aria-label="9 of 13: Time for a live demo">
     <div class="glow" aria-hidden="true"></div>
     <div class="ripples" aria-hidden="true"><i></i><i></i><i></i></div>
     <div class="countdown" aria-hidden="true"><span>3</span></div>
@@ -636,8 +636,27 @@
     </div>
   </section>
 
-  <!-- 10 · Appendix: Terraform modules -->
-  <section class="slide s-appx s-modules appendix" aria-label="10 of 12: Terraform modules (appendix)">
+  <!-- 10 · Appendix: bootstrap -->
+  <section class="slide s-appx s-boot appendix" aria-label="10 of 13: Bootstrap (appendix)">
+    <header class="appx-head">
+      <div>
+        <p class="eyebrow reveal" style="--d:0">Appendix · setup</p>
+        <h1 class="h-l reveal" style="--d:1">Bootstrap: seven double-clicks to a pipeline.</h1>
+        <p class="lede reveal" style="--d:2">Windows launchers, run once in order. Each opens a console, logs to bootstrap\logs, and is safe to run again.</p>
+      </div>
+      <div class="appx-tags reveal" style="--d:2"><i>Windows: double-click</i><i>macOS / Linux: make</i></div>
+    </header>
+    <ol class="boot-steps"><li class="boot-step reveal" style="--d:3"><div class="boot-top"><span class="n">1</span><span class="mono">install-tools</span></div><p>Pinned Terraform, Terragrunt, crane, actionlint, shellcheck into .tools\bin; gcloud, AWS CLI and gh via winget</p><div class="boot-you"><span><b>You:</b> Click Yes on admin prompts</span><div><i>→ .tools\bin</i></div></div></li><b class="boot-sep" aria-hidden="true">›</b><li class="boot-step reveal" style="--d:4"><div class="boot-top"><span class="n">2</span><span class="mono">gcp-setup</span></div><p>Sign in, create project rehearse-xxxxxx, link billing, first Terragrunt apply: state bucket, APIs, registry, keyless GitHub sign-in</p><div class="boot-you"><span><b>You:</b> Sign in twice, type y</span><div><i>→ GCP_PROJECT_ID</i><i>→ tfstate bucket</i></div></div></li><b class="boot-sep" aria-hidden="true">›</b><li class="boot-step off reveal" style="--d:5"><div class="boot-top"><span class="n">3</span><span class="mono">aws-setup</span></div><p>AWS credentials, first Terragrunt apply. Deferred: the account is blocked by an org policy</p><div class="boot-you"><span><b>You:</b> Paste an admin key, type y</span><div><i>→ AWS_READY</i></div></div></li><b class="boot-sep" aria-hidden="true">›</b><li class="boot-step reveal" style="--d:6"><div class="boot-top"><span class="n">4</span><span class="mono">secrets</span></div><p>Neon direct URLs per environment and the Grafana OTLP token into Secret Manager (SSM on AWS)</p><div class="boot-you"><span><b>You:</b> Paste values into hidden prompts</span><div><i>→ Secret Manager</i></div></div></li><b class="boot-sep" aria-hidden="true">›</b><li class="boot-step reveal" style="--d:7"><div class="boot-top"><span class="n">5</span><span class="mono">github-setup</span></div><p>Repo variables from Terraform outputs; deployment environments, with you as the production reviewer</p><div class="boot-you"><span><b>You:</b> Sign in to GitHub</span><div><i>→ repo variables</i><i>→ environments</i></div></div></li><b class="boot-sep" aria-hidden="true">›</b><li class="boot-step reveal" style="--d:8"><div class="boot-top"><span class="n">6</span><span class="mono">grafana-dashboard</span></div><p>Dashboard + 5xx alert rule into Grafana Cloud; optional annotation token for deploy markers</p><div class="boot-you"><span><b>You:</b> Paste stack URL, Admin + Editor tokens</span><div><i>→ GRAFANA_URL</i><i>→ alert rule</i></div></div></li><b class="boot-sep" aria-hidden="true">›</b><li class="boot-step reveal" style="--d:9"><div class="boot-top"><span class="n">7</span><span class="mono">repo-rules</span></div><p>Rulesets for main and demo/queue-base, auto-merge on, Actions may open PRs</p><div class="boot-you"><span><b>You:</b> Nothing: uses your gh sign-in</span><div><i>→ rulesets</i></div></div></li></ol>
+    <div class="boot-panels">
+      <section class="card boot-panel reveal" style="--d:10"><h2 class="pol-label">Accounts first</h2><p><b>Google Cloud</b> with billing (step 2)</p><p><b>Neon</b> one branch per environment; direct URLs, pooling off</p><p><b>Grafana Cloud</b> OTLP endpoint + tokens (steps 4, 6)</p><p><b>AWS</b> optional until its account is unblocked</p></section>
+      <section class="card boot-panel reveal" style="--d:11"><h2 class="pol-label">What lands where</h2><p><b>settings.env</b> project ID, region, Grafana URL: git-ignored, read by make</p><p><b>Secret Manager / SSM</b> database URLs, OTLP token. Never on disk, never in Terraform</p><p><b>GitHub</b> variables, environments, rulesets; one annotation secret</p><p><b>Terraform state</b> GCS bucket created in step 2</p></section>
+      <section class="card boot-panel reveal" style="--d:12"><h2 class="pol-label">Why launchers</h2><p><b>Repeatable:</b> each step checks what exists before creating it, so re-running fixes drift</p><p><b>Secrets stay hidden:</b> typed into masked prompts, kept out of logs</p><p><b>GCP-only works today:</b> AWS steps skip until AWS_READY=true</p></section>
+    </div>
+    <p class="appx-callout reveal" style="--d:13"><b>After step 7, nothing is manual:</b> every merge deploys to gcp-dev, Promote moves a release on, Infra apply and nightly drift detection keep the infrastructure matching the code.</p>
+  </section>
+
+  <!-- 11 · Appendix: Terraform modules -->
+  <section class="slide s-appx s-modules appendix" aria-label="11 of 13: Terraform modules (appendix)">
     <header class="appx-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Appendix · infrastructure</p>
@@ -653,8 +672,8 @@
     <p class="appx-callout reveal" style="--d:12"><b>The Problem 1 rule, in code:</b> both service shells use <code>lifecycle { ignore_changes = … }</code> on the revision / task definition, so <em>terraform apply</em> can never push config ahead of an image.</p>
   </section>
 
-  <!-- 11 · Appendix: Terragrunt -->
-  <section class="slide s-appx s-tg appendix" aria-label="11 of 12: Terragrunt environments (appendix)">
+  <!-- 12 · Appendix: Terragrunt -->
+  <section class="slide s-appx s-tg appendix" aria-label="12 of 13: Terragrunt environments (appendix)">
     <header class="appx-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Appendix · infrastructure</p>
@@ -696,8 +715,8 @@
     </div>
   </section>
 
-  <!-- 12 · Appendix: workflows -->
-  <section class="slide s-appx s-wf appendix" aria-label="12 of 12: GitHub Actions workflows (appendix)">
+  <!-- 13 · Appendix: workflows -->
+  <section class="slide s-appx s-wf appendix" aria-label="13 of 13: GitHub Actions workflows (appendix)">
     <header class="appx-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Appendix · automation</p>

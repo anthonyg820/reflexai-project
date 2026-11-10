@@ -547,6 +547,25 @@ strong { font-weight: 650; }
 .appx-tags i, .mod .res i, .cell i, .chain i { font-style: normal; display: inline-block; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-soft); white-space: nowrap; }
 .s-appx .pol-label.acc, .s-appx .gcp .pol-label { color: var(--accent); }
 .s-appx .pol-label.org, .s-appx .aws .pol-label { color: var(--orange); }
+.boot-steps { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; align-items: stretch; }
+.boot-sep { align-self: center; color: var(--line-2); font-size: 18px; font-weight: 400; }
+.boot-step { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 14px 14px 12px; border: 1px solid var(--line); border-radius: 14px; background: #0f1715; }
+.boot-step.off { border-style: dashed; filter: opacity(0.6); }
+.boot-top { display: flex; align-items: center; gap: 10px; }
+.boot-top .n { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font-family: var(--display); font-size: 15px; font-weight: 700; }
+.boot-top .mono { font-size: 13px; color: var(--accent); }
+.boot-step.off .n { background: var(--panel-2); color: #6f807a; }
+.boot-step.off .mono, .boot-step.off .boot-you i { color: #6f807a; border-color: var(--line-2); }
+.boot-step > p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--ink-soft); }
+.boot-you { margin-top: auto; display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px solid var(--panel-2); }
+.boot-you > span { font-size: 11.5px; color: var(--muted); }
+.boot-you b { color: var(--ink); font-weight: 600; }
+.boot-you div { display: flex; flex-wrap: wrap; gap: 4px; }
+.boot-you i { font-style: normal; padding: 2px 8px; border: 1px solid #1f5f57; border-radius: 999px; font-family: var(--mono); font-size: 10.5px; color: var(--accent); white-space: nowrap; }
+.boot-panels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.boot-panel { display: flex; flex-direction: column; gap: 8px; padding: 14px 18px; }
+.boot-panel p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--ink-soft); }
+.boot-panel b { color: var(--ink); font-weight: 600; }
 .mod-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .mod-grid > section { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .col-head { display: flex; justify-content: space-between; align-items: baseline; }
