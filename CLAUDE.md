@@ -1,31 +1,11 @@
 # CLAUDE.md
 
-## Prompt log (always do this)
-At the start of every turn, append the user's prompt to `docs/prompts.md` **before doing any other work**.
-- Copy the prompt word for word. Don't summarize, fix typos or reword it.
-- Use the next number in sequence and the local time (America/New_York), in this format:
-
-  ```
-  ---
-
-  ### <n>. <Day YYYY-MM-DD HH:MM>
-
-  <prompt text>
-
-  **Claude:**
-
-  <Claude's reply>
-  ```
-- At the end of the turn, add Claude's reply under that entry's `**Claude:**` marker (the final reply, plus any progress messages sent mid-turn, labelled). Condense long tables or file lists if needed, but keep the substance.
-- Leave out attached file contents and system or tool messages; log only what the user typed.
-- Never edit or remove earlier entries (only the current entry's reply may be filled in).
-- Exception to word-for-word: replace secrets (tokens, passwords, keys, connection strings) with `[REDACTED]`. The repo is public.
-
 ## Keep this file current (always do this)
 Update this CLAUDE.md in the same turn whenever something it describes changes, such as the stack, environments, principles, repo layout, conventions or commands. Also update it when the user states a new standing preference or workflow rule. Keep it short; detailed design belongs in `docs/PLAN.md`.
 
 ## Project context
 - Mock app ("Rehearse") built to prepare for the ReflexAI Senior Platform Engineer technical deep dive (CI/CD & developer experience), Wed 2026-11-11.
+- `docs/prompts.md` is a frozen log of the prompts and replies up to 2026-11-10. Don't add to it.
 - The design, stack, scope and timeline are in `docs/PLAN.md` (§9 "As built" wins over earlier sections). Treat it as the source of truth and update it when decisions change. Cloud bootstrap: `docs/SETUP.md`. Interview demo: `docs/DEMO.md`.
 - Stack: TypeScript (strict), Next.js 16 + NestJS 11, Drizzle + Postgres (Neon), pnpm + Turborepo, Terraform + Terragrunt, GitHub Actions, GCP Cloud Run + AWS ECS Fargate, OpenTelemetry → Grafana.
 - Environments: gcp-dev (auto on merge) → gcp-uat + aws-uat (manual promote) → approval → gcp-prod (canary) → aws-prod.
