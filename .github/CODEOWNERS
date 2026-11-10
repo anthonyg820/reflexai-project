@@ -1,6 +1,12 @@
-# Risk-based review: everyone can review app code; platform paths need a platform owner.
-*                         @anthonyg820
-/infra/                   @anthonyg820
-/.github/                 @anthonyg820
-/deploy/                  @anthonyg820
-/apps/api/migrations/     @anthonyg820
+# Risk-based review (Scenario B). App code has no code owner on purpose: any one
+# human can approve it (scripts/review-policy). Platform paths need a platform
+# owner; the repo ruleset enforces it ("Require review from Code Owners").
+/infra/                       @anthonyg820
+/deploy/                      @anthonyg820
+/.github/                     @anthonyg820
+/bootstrap/                   @anthonyg820
+/apps/api/migrations/         @anthonyg820
+/packages/config/             @anthonyg820
+/scripts/render-release.mjs   @anthonyg820
+/scripts/review-policy/       @anthonyg820
+Dockerfile                    @anthonyg820

@@ -1,0 +1,45 @@
+# Scenario B: risk-based review. Labels each PR risk:low|medium|high, posts the
+# required `review-policy` status, and turns on auto-merge for low risk.
+# The policy itself is scripts/review-policy/classify.mjs.
+#
+# pull_request_target / pull_request_review run with a write token, so this
+# workflow only ever checks out the BASE branch and never runs PR code.
+name: Review policy
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+  pull_request_review:
+    types: [submitted, dismissed]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number
+        required: true
+
+permissions:
+  contents: write       # enable auto-merge
+  pull-requests: write  # labels, auto-merge
+  issues: write         # create labels
+  statuses: write       # the review-policy status
+
+concurrency:
+  group: review-policy-${{ github.event.pull_request.number || inputs.pr }}
+  cancel-in-progress: true
+
+jobs:
+  policy:
+    name: Apply review policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: node scripts/review-policy/index.mjs "${{ github.event.pull_request.number || inputs.pr }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

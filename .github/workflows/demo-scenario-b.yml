@@ -1,0 +1,151 @@
+# Interview demo for Scenario B ("the review queue").
+#
+# open:    reset, then open three realistic PRs against a throwaway base branch
+#          (demo/queue-base, a copy of main) and run CI + the review policy on
+#          each:
+#            1. a real dev-tooling dependency update from npm -> risk:low,
+#               merges itself as soon as CI is green, no human involved
+#            2. an agent-written bug fix in app code           -> risk:medium,
+#               waits for one human approval (bot approvals don't count)
+#            3. an infra change (UAT api becomes private)      -> risk:high,
+#               waits for a platform code owner
+#          Approve #2 or #3 on GitHub and the policy re-checks itself.
+# cleanup: close the demo PRs and delete every demo/* branch. main is never
+#          touched, so this can run as often as you like.
+#
+# Needs bootstrap/7-repo-rules.cmd once (rulesets, auto-merge, and "Allow
+# GitHub Actions to create pull requests").
+name: "Demo: Scenario B"
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [open, cleanup]
+        required: true
+
+permissions:
+  contents: write       # demo branches
+  pull-requests: write  # open PRs, auto-merge
+  issues: write         # labels
+  statuses: write       # review-policy status
+  actions: write        # dispatch CI on the demo branches
+
+concurrency:
+  group: demo-scenario-b
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  BASE: demo/queue-base
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - name: Clean up earlier demo runs
+        run: bash demo/review-queue/cleanup.sh
+
+      - if: inputs.mode == 'open'
+        uses: pnpm/action-setup@v4
+      - if: inputs.mode == 'open'
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Create the base branch (a copy of main)
+        if: inputs.mode == 'open'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git push origin "HEAD:refs/heads/$BASE"
+
+      - name: "PR 1: dependency update (what Renovate opens)"
+        if: inputs.mode == 'open'
+        id: deps
+        run: |
+          pick="$(node demo/review-queue/pick-dep-bump.mjs)"
+          name="$(jq -r .name <<<"$pick")" to="$(jq -r .to <<<"$pick")" from="$(jq -r .from <<<"$pick")"
+          workspace="$(jq -r .workspace <<<"$pick")" dir="$(jq -r .dir <<<"$pick")"
+          branch="demo/deps-${name//[@\/]/-}-$to"
+          git switch -c "$branch"   # main == the base branch right now
+          if [[ "$dir" == "." ]]; then
+            pnpm add -Dw --save-exact --lockfile-only "$name@$to"
+          else
+            pnpm --filter "$workspace" add -D --save-exact --lockfile-only "$name@$to"
+          fi
+          git commit -qam "chore(deps): update $name to $to"
+          git push -q origin "$branch"
+          gh pr create --base "$BASE" --head "$branch" --title "chore(deps): update $name $from -> $to" \
+            --body "Dev-tooling update ($from -> $to), the kind of PR Renovate opens every week. Opened by the Scenario B demo." \
+            --label dependencies
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          git switch -q -
+
+      - name: "PR 2: agent-written bug fix"
+        if: inputs.mode == 'open'
+        id: agent
+        run: |
+          branch=demo/agent-fix-curly-apostrophes
+          git switch -c "$branch"
+          git apply demo/review-queue/agent-fix.patch
+          git commit -qam "fix(scoring): match phrases typed with curly apostrophes" \
+            -m "Trainees on phones type I’m, which never matched rubric phrases like \"what i'm hearing\"." \
+            -m "Co-Authored-By: Coding Agent <agent@example.com>"
+          git push -q origin "$branch"
+          gh pr create --base "$BASE" --head "$branch" --title "fix(scoring): match phrases typed with curly apostrophes" \
+            --body "Agent-written fix plus a regression test. The AI reviewer has passed it; policy still wants one human. Opened by the Scenario B demo." \
+            --label agent
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          git switch -q -
+
+      - name: "PR 3: infrastructure change"
+        if: inputs.mode == 'open'
+        id: infra
+        run: |
+          branch=demo/infra-uat-api-private
+          git switch -c "$branch"
+          git apply demo/review-queue/infra-change.patch
+          git commit -qam "infra(gcp-uat): only authenticated callers for the api"
+          git push -q origin "$branch"
+          gh pr create --base "$BASE" --head "$branch" --title "infra(gcp-uat): only authenticated callers for the api" \
+            --body "Changes IAM on a Cloud Run service shell. Needs a platform code owner. Opened by the Scenario B demo."
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          git switch -q -
+
+      - name: Run CI on each PR
+        if: inputs.mode == 'open'
+        # PRs opened with GITHUB_TOKEN don't trigger workflows, so start CI
+        # explicitly. Its checks land on each PR's head commit.
+        run: |
+          for b in "${{ steps.deps.outputs.branch }}" "${{ steps.agent.outputs.branch }}" "${{ steps.infra.outputs.branch }}"; do
+            gh workflow run ci.yml --ref "$b"
+          done
+
+      - name: Apply the review policy
+        if: inputs.mode == 'open'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "### Scenario B: three PRs, three review paths" >> "$GITHUB_STEP_SUMMARY"
+          gh pr list --base "$BASE" --state open --json number -q '.[].number' | sort -n | while read -r n; do
+            node scripts/review-policy/index.mjs "$n" >/dev/null
+          done
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          #### What to show
+          1. **risk:low** merges itself once CI is green (2-4 minutes). Nobody reviewed it.
+          2. **risk:medium** waits for one human. Approve it: the policy re-runs and the status turns green.
+          3. **risk:high** waits for a code owner (ruleset + policy).
+          4. The compliance "second person" is the approval on the production deployment (Promote), recorded in GitHub's deploy history.
+          5. Run this workflow with `mode=cleanup` (or `open` again) to reset.
+          EOF
+
+      - name: Hint if the repo isn't set up for the demo
+        if: failure() && inputs.mode == 'open'
+        run: |
+          echo "::error::If 'gh pr create' failed, run bootstrap/7-repo-rules.cmd once: it allows GitHub Actions to create pull requests and turns on auto-merge."

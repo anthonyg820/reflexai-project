@@ -4,6 +4,7 @@ name: CI
 on:
   pull_request:
   merge_group:
+  workflow_dispatch: # the Scenario B demo starts CI on its PRs (PRs opened by GITHUB_TOKEN trigger nothing)
   push:
     branches: [main]
     paths-ignore: ["docs/**", "**/*.md"]
@@ -76,7 +77,13 @@ jobs:
           done
 
       - name: Lint shell scripts
-        run: shellcheck -x -P deploy/scripts deploy/scripts/*.sh
+        run: shellcheck -x -P deploy/scripts deploy/scripts/*.sh demo/review-queue/*.sh
+
+      - name: Review policy tests and demo fixtures
+        run: |
+          node --test scripts/review-policy/*.test.mjs
+          # The Scenario B demo PRs must still apply to this commit (or already be applied, on a demo branch).
+          for p in demo/review-queue/*.patch; do git apply --check "$p" || git apply --check -R "$p"; done
 
   images:
     name: Build & scan ${{ matrix.image }}

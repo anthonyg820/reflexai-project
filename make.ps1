@@ -38,8 +38,8 @@ param(
     # Docker Compose service for "logs"
     [string] $Service = '',
 
-    # Scenario A demo mode for "demo"
-    [ValidateSet('', 'legacy-order', 'guarded', 'recover')]
+    # Demo mode: "demo" (Scenario A) takes legacy-order|guarded|rebuild-drift|recover, "demo-b" takes open|cleanup
+    [ValidateSet('', 'legacy-order', 'guarded', 'rebuild-drift', 'recover', 'open', 'cleanup')]
     [string] $Mode = '',
 
     # install-tools: also install Node, Docker Desktop, gh, gcloud and aws CLIs with winget
@@ -343,7 +343,7 @@ Add-Command 'open' 'Run locally' 'Open the web app and Grafana in your browser' 
 
 # Quality
 Add-Command 'check' 'Quality (what CI runs)' 'Everything CI checks before a merge' {
-    foreach ($c in @('lint', 'typecheck', 'test', 'validate-config', 'lint-workflows', 'lint-shell')) {
+    foreach ($c in @('lint', 'typecheck', 'test', 'test-policy', 'validate-config', 'lint-workflows', 'lint-shell')) {
         Write-Step "== $c"
         & $Commands[$c].Action
     }
@@ -368,7 +368,18 @@ Add-Command 'lint-workflows' 'Quality (what CI runs)' 'Lint GitHub Actions workf
 Add-Command 'lint-shell' 'Quality (what CI runs)' 'Lint release shell scripts' {
     if (-not (Test-Command 'shellcheck')) { throw "shellcheck not found: run '.\make install-tools'" }
     $scripts = (Get-ChildItem deploy/scripts -Filter *.sh | ForEach-Object { "deploy/scripts/$($_.Name)" })
+    $scripts += (Get-ChildItem demo/review-queue -Filter *.sh | ForEach-Object { "demo/review-queue/$($_.Name)" })
     Exec { shellcheck -x -P deploy/scripts @scripts }
+}
+Add-Command 'test-policy' 'Quality (what CI runs)' 'Review policy unit tests + check the Scenario B demo patches still apply' {
+    $tests = (Get-ChildItem scripts/review-policy -Filter *.test.mjs | ForEach-Object { "scripts/review-policy/$($_.Name)" })
+    Exec { node --test @tests }
+    foreach ($p in (Get-ChildItem demo/review-queue -Filter *.patch)) {
+        $path = "demo/review-queue/$($p.Name)"
+        $previous = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+        try { & git apply --check $path 2>&1 | Out-Null } finally { $ErrorActionPreference = $previous }
+        if ($LASTEXITCODE -ne 0) { Exec { git apply --check -R $path } }
+    }
 }
 Add-Command 'render' 'Quality (what CI runs)' 'Render every release spec with dummy digests into .rendered\ (to inspect what would ship)' {
     Invoke-Pnpm @('--filter', '@rehearse/config', 'build') | Out-Null
@@ -499,9 +510,13 @@ Add-Command 'rollback' 'Releases (GitHub Actions via gh)' 'Roll back an environm
     if (-not $Environment) { throw 'Usage: .\make rollback -Cloud gcp|aws -Env dev|uat|prod' }
     Exec { gh workflow run rollback.yml -f "cloud=$Cloud" -f "environment=$Environment" }
 }
-Add-Command 'demo' 'Releases (GitHub Actions via gh)' 'Run the Scenario A demo workflow on gcp-dev: demo -Mode legacy-order|guarded|recover' {
-    if (-not $Mode) { throw 'Usage: .\make demo -Mode legacy-order|guarded|recover' }
+Add-Command 'demo' 'Releases (GitHub Actions via gh)' 'Run the Scenario A demo workflow on gcp-dev: demo -Mode legacy-order|guarded|rebuild-drift|recover' {
+    if ($Mode -notin 'legacy-order', 'guarded', 'rebuild-drift', 'recover') { throw 'Usage: .\make demo -Mode legacy-order|guarded|rebuild-drift|recover' }
     Exec { gh workflow run demo-scenario-a.yml -f "mode=$Mode" }
+}
+Add-Command 'demo-b' 'Releases (GitHub Actions via gh)' 'Run the Scenario B (review queue) demo workflow: demo-b -Mode open|cleanup' {
+    if ($Mode -notin 'open', 'cleanup') { throw 'Usage: .\make demo-b -Mode open|cleanup' }
+    Exec { gh workflow run demo-scenario-b.yml -f "mode=$Mode" }
 }
 Add-Command 'status' 'Releases (GitHub Actions via gh)' 'Recent release / promote / infra runs' {
     foreach ($w in @('release.yml', 'promote.yml', 'infra-apply.yml')) {

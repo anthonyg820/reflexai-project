@@ -11,7 +11,8 @@ Values the steps discover (project ID, account ID, Grafana endpoint) go in
 | `3-aws-setup.cmd` | AWS credentials check (`aws configure` if needed), first Terragrunt apply for AWS | Paste an IAM admin access key, type `y` |
 | `4-secrets.cmd` | Stores Neon URLs and the Grafana token in Secret Manager / SSM | Paste values (hidden) |
 | `5-github-setup.cmd` | Repo variables + deployment environments (`production` with you as reviewer) | Sign in to GitHub in the browser |
-| `6-grafana-dashboard.cmd` | Loads `deploy/grafana/*.json` into Grafana Cloud (re-run after dashboard changes) | Paste your stack URL once and a service account token |
+| `6-grafana-dashboard.cmd` | Loads the dashboard and the 5xx alert rule into Grafana Cloud; optionally stores an annotation token in GitHub for deploy markers (re-run after `deploy/grafana/` changes) | Paste your stack URL once, an **Admin** service account token, and optionally an **Editor** token |
+| `7-repo-rules.cmd` | Scenario B repo rules: rulesets for `main` and `demo/queue-base` (required checks, code-owner review), auto-merge, lets Actions open PRs | Nothing (uses your `gh` sign-in) |
 
 Accounts needed first: Google Cloud with billing (step 2), AWS (step 3), Neon with a branch per
 environment (`gcp-dev`, `gcp-uat`, `gcp-prod`, plus `aws-uat`, `aws-prod` once AWS exists) and

@@ -316,3 +316,18 @@ Where the build differs from the sections above, this section wins.
 - URLs: dev https://rehearse-dev-web-2di5u2z6ya-ue.a.run.app · uat https://rehearse-uat-web-2di5u2z6ya-ue.a.run.app · prod https://rehearse-prod-web-2di5u2z6ya-ue.a.run.app
 - Fixes found by the first real runs: Cloud Run reserves `/healthz` (now `/health`); collector-contrib 0.139.0 had critical CVEs (now 0.164.0).
 - **Still to do:** confirm telemetry arrives in Grafana Cloud and import the dashboard there; rehearse the Scenario A demo on gcp-dev; AWS (deferred).
+
+### Status (Mon 11/9, evening): both scenarios demoable on demand
+- **Scenario A** (`demo-scenario-a.yml`): every run resets gcp-dev first. `legacy-order` records a
+  timeline in the job summary and auto-recovers (about 9 minutes end to end, like the real outage).
+  `guarded` shows the startup probe blocking the revision. `rebuild-drift` rebuilds the deployed commit
+  and compares digests against dev/UAT/prod.
+- **Alerting as code**: `deploy/grafana/alerting/rehearse-alerts.json` (API 5xx ratio > 2% for 1m),
+  provisioned by `scripts/grafana-import.mjs`. Deploy and demo markers need the `GRAFANA_URL`
+  variable and the `GRAFANA_ANNOTATION_TOKEN` secret (step 6 sets them).
+- **Scenario B**: a risk-based review policy (`scripts/review-policy/`, `review-policy.yml`) labels PRs,
+  posts the required `review-policy` status and auto-merges low risk. CODEOWNERS covers only platform
+  paths. Rulesets come from `bootstrap/7-repo-rules.cmd`. `demo-scenario-b.yml` opens three PRs
+  (a real npm dev-dependency bump, an agent fix, an infra change) against `demo/queue-base` and cleans up.
+- PRs opened with `GITHUB_TOKEN` trigger no workflows, so the demo dispatches CI (`workflow_dispatch`
+  on `ci.yml`) and runs the policy script itself. Their checks land on the PR head commits.
