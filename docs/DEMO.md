@@ -8,6 +8,8 @@ step as often as you like, in any order.
 `7-repo-rules.cmd` for Scenario B. Re-run `6-grafana-dashboard.cmd` with an Admin token so the 5xx
 alert rule exists, and give it an Editor token for deploy markers.
 
+**Opening:** present `docs/presentation/index.html` full screen (press `F`; arrow keys to move; `A` approves prod on slide 3). Its last slide links straight to the app, Actions and Grafana.
+
 **Before the interview (5 min):**
 1. Run **Demo: Scenario A** with `mode=recover` (dev back on the last release).
 2. Run **Demo: Scenario B** with `mode=cleanup`.
