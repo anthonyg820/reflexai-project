@@ -20,20 +20,13 @@ jobs:
           for s in rehearse-dev-api rehearse-dev-web; do
             echo "== $s"; gcloud run services describe $s --project ${{ vars.GCP_PROJECT_ID }} --region ${{ vars.GCP_REGION }} --format='yaml(status.traffic,status.latestReadyRevisionName,spec.template.spec.containers[].resources)'
           done
-      - name: Any entries at all (sanity)
-        run: gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name=~"rehearse-dev"' --project ${{ vars.GCP_PROJECT_ID }} --freshness=1h --limit=5 --format='value(timestamp, logName, resource.labels.service_name)'
-      - name: Requests with status >= 400 (last 3h)
+      - name: Web container stderr / errors (last 6h)
         run: |
-          gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name=~"rehearse-dev" AND httpRequest.status>=400' \
-            --project ${{ vars.GCP_PROJECT_ID }} --freshness=3h --limit=80 \
-            --format='value(timestamp, resource.labels.service_name, httpRequest.status, httpRequest.requestMethod, httpRequest.requestUrl, httpRequest.latency)'
-      - name: Structured logs at level >= 40 (pino warn/error) (last 3h)
+          gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="rehearse-dev-web" AND labels.container_name="web" AND NOT httpRequest:* AND NOT jsonPayload.level="info" AND NOT jsonPayload.level=30' \
+            --project ${{ vars.GCP_PROJECT_ID }} --freshness=6h --limit=120 \
+            --format='value(timestamp, severity, textPayload, jsonPayload.msg, jsonPayload.err.message, jsonPayload.status, jsonPayload.path)' | cut -c1-500
+      - name: API non-info logs (last 6h)
         run: |
-          gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name=~"rehearse-dev" AND (jsonPayload.level>=40 OR jsonPayload.level="error" OR jsonPayload.level="warn")' \
-            --project ${{ vars.GCP_PROJECT_ID }} --freshness=3h --limit=80 \
-            --format='json(timestamp, resource.labels.service_name, jsonPayload)' | head -c 30000
-      - name: Last 40 api + web lines (any)
-        run: |
-          gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name=~"rehearse-dev" AND NOT httpRequest:*' \
-            --project ${{ vars.GCP_PROJECT_ID }} --freshness=1h --limit=40 \
-            --format='value(timestamp, resource.labels.service_name, labels.container_name, textPayload, jsonPayload.msg, jsonPayload.message)' | cut -c1-300
+          gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="rehearse-dev-api" AND labels.container_name="api" AND NOT httpRequest:* AND NOT jsonPayload.level="info" AND NOT jsonPayload.level=30' \
+            --project ${{ vars.GCP_PROJECT_ID }} --freshness=6h --limit=60 \
+            --format='value(timestamp, severity, textPayload, jsonPayload.msg, jsonPayload.err.message, jsonPayload.context)' | cut -c1-400
