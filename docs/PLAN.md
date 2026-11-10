@@ -342,3 +342,8 @@ Where the build differs from the sections above, this section wins.
 ### Fix (Mon 11/9, 21:45): intermittent 5xx on gcp-dev
 - **Cause:** Neon suspends an idle compute and ends its connections (`57P01`). The pg `Pool` had no `'error'` listener, so an idle connection dying was an unhandled `'error'` event, and the API process exited. Cloud Run restarted it, and requests in between got 5xx. I reproduced it locally with `pg_terminate_backend`.
 - **Fix:** `ResilientPool` logs idle-connection errors instead of crashing, retries a single statement once on a dropped connection, and closes idle connections after 60s. An end-to-end test terminates every connection and checks that the API keeps serving.
+
+### Fix (Mon 11/9, 22:15): the actual cause of the "Something went wrong" page
+- After the connection fix, users still saw the error page. Cloud Run logs showed no 5xx and no server errors at all. Driving the app in a real Chromium reproduced it client-side: `TypeError: destroy is not a function`.
+- **Cause:** `useEffect(() => end.current?.scrollIntoView(...))` in the chat. Newer Chromium returns a Promise from `scrollIntoView()`, so the effect returned a Promise, and React crashed when it tried to "clean it up" on the next message, End & score, or navigating away.
+- **Fix:** give the effect a block body, and add an ESLint rule that rejects expression-bodied effect callbacks. The database-connection fix (`ResilientPool`) stays, since that crash was real too.

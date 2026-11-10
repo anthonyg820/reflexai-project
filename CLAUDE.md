@@ -53,6 +53,7 @@ Update this CLAUDE.md in the same turn whenever something it describes changes, 
 
 ## Gotchas
 - Health endpoint is `/health`, never `/healthz`: Cloud Run's front end reserves paths ending in `z` and returns its own 404.
+- React effects must have a block body. Newer Chromium returns a Promise from `scrollIntoView()`, and an effect that returns anything but a cleanup function crashes the page into the error boundary. An ESLint rule in `apps/web/eslint.config.mjs` enforces this.
 - Neon suspends idle computes (free plan: after 5 minutes) and ends every connection with `57P01`. Always create pools with `createPool` (`apps/api/src/db/db.module.ts`). Its `ResilientPool` handles idle-connection errors, which would otherwise crash the process, and retries a single statement once on a dropped connection.
 
 ## Rules that keep Scenario A fixed (don't break these)
