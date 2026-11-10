@@ -11,6 +11,9 @@
   const next = document.getElementById("next");
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const pad = (n) => String(n).padStart(2, "0");
+  // Slides are found by class, so adding one doesn't break the per-slide logic.
+  const slideIndex = (cls) => slides.findIndex((s) => s.classList.contains(cls));
+  const PIPE = slideIndex("s-pipeline");
 
   // Timers belong to the current slide and are cleared when it changes.
   let timers = [];
@@ -74,7 +77,7 @@
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.target.closest && e.target.closest("button, a") && (e.key === " " || e.key === "Enter")) return;
     const k = e.key;
-    if (current === 2 && openPhase >= 0 && (k === "ArrowDown" || k === "ArrowUp" || k === "Escape")) {
+    if (current === PIPE && openPhase >= 0 && (k === "ArrowDown" || k === "ArrowUp" || k === "Escape")) {
       if (k === "Escape") closePhase();
       else openPhaseAt(openPhase + (k === "ArrowDown" ? 1 : -1));
       e.preventDefault();
@@ -104,7 +107,7 @@
     else document.documentElement.requestFullscreen?.().catch(() => {});
   }
 
-  // ---------- 3 · pipeline: the image capsule travels through the stages ----------
+  // ---------- 4 · pipeline: the image capsule travels through the stages ----------
   const track = document.getElementById("track");
   const capsule = document.getElementById("capsule");
   const boxes = [...document.querySelectorAll("#stages .stage-box")];
@@ -151,7 +154,7 @@
     later(step, 1600);
   }
   function approve() {
-    if (current !== 2 || !waiting) return;
+    if (current !== PIPE || !waiting) return;
     waiting = false;
     gate.classList.remove("waiting");
     gate.classList.add("approved");
@@ -175,8 +178,8 @@
     runPipeline();
   });
 
-  // ---------- 3 · pipeline: click a stage to open its details panel ----------
-  const slide3 = slides[2];
+  // ---------- 4 · pipeline: click a stage to open its details panel ----------
+  const slide3 = slides[PIPE];
   const panel = document.getElementById("phase-panel");
   const caret = document.getElementById("phase-caret");
   const phases = [...panel.querySelectorAll(".phase")];
@@ -234,7 +237,53 @@
   });
   document.getElementById("phase-close").addEventListener("click", closePhase);
 
-  // ---------- 4 · scenario A: outage clock, error rain, guardrails lighting up ----------
+  // ---------- 3 · release: the digest types itself out; GCP / AWS tabs ----------
+  const relSlide = slides[slideIndex("s-release")];
+  const relSha = document.getElementById("rel-sha");
+  const relTabs = [...relSlide.querySelectorAll('[role="tab"]')];
+  const relFname = document.getElementById("rel-fname");
+  function showCloud(tab, focus, base = 150) {
+    relSlide.style.setProperty("--rel-base", `${base}ms`);
+    relTabs.forEach((t) => {
+      const on = t === tab;
+      t.setAttribute("aria-selected", String(on));
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+    });
+    const panel = document.getElementById(tab.getAttribute("aria-controls"));
+    relFname.textContent = panel.dataset.fname;
+    // Replay the marker sequence for the newly shown file.
+    relSlide.classList.remove("markers");
+    void relSlide.offsetWidth;
+    relSlide.classList.add("markers");
+    if (focus) tab.focus();
+  }
+  relTabs.forEach((t, i) => {
+    t.addEventListener("click", () => showCloud(t));
+    t.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      e.stopPropagation(); // arrows switch tabs here instead of slides
+      showCloud(relTabs[(i + 1) % relTabs.length], true);
+    });
+  });
+  function runRelease() {
+    showCloud(relTabs[0], false, 1300);
+    const full = relSha.dataset.full;
+    if (reduced) {
+      relSha.textContent = full;
+      return;
+    }
+    let n = "sha256:".length;
+    relSha.textContent = full.slice(0, n);
+    later(() => every(() => {
+      if (n >= full.length) return;
+      n += 2;
+      relSha.textContent = full.slice(0, n);
+    }, 28), 700);
+  }
+
+  // ---------- 5 · scenario A: outage clock, error rain, guardrails lighting up ----------
   const compare = document.getElementById("compare");
   const clock = document.getElementById("clock");
   const outageBar = document.getElementById("outage-bar");
@@ -270,7 +319,7 @@
     guards.forEach((g, i) => later(() => g.classList.add("lit"), 1400 + i * 700));
   }
 
-  // ---------- 5 · scenario B: PRs leave the queue and land in their lanes ----------
+  // ---------- 6 · scenario B: PRs leave the queue and land in their lanes ----------
   const incoming = [...document.querySelectorAll(".incoming .pr")];
   const slotFor = (lane) => document.querySelector(`.slot[data-slot="${lane}"]`);
   const STATUS = { low: "merged automatically", med: "waiting for 1 review", high: "waiting for code owner" };
@@ -293,8 +342,8 @@
     );
   }
 
-  // ---------- 6 · live demo: countdown, letter drop, ripples ----------
-  const demo = slides[6];
+  // ---------- 8 · live demo: countdown, letter drop, ripples ----------
+  const demo = slides[slideIndex("s-demo")];
   const countdown = demo.querySelector(".countdown span");
   document.querySelectorAll("#demo-title .line").forEach((line, li) => {
     const offset = li * 11;
@@ -325,7 +374,13 @@
     else a.hidden = true;
   }
 
-  const enter = { 2: runPipeline, 3: runScenarioA, 4: runScenarioB, 6: runDemo };
+  const enter = {
+    [slideIndex("s-release")]: runRelease,
+    [PIPE]: runPipeline,
+    [slideIndex("s-a")]: runScenarioA,
+    [slideIndex("s-b")]: runScenarioB,
+    [slideIndex("s-demo")]: runDemo,
+  };
 
   const start = Number(location.hash.slice(1));
   go(Number.isInteger(start) && start >= 1 && start <= slides.length ? start - 1 : 0);
