@@ -50,7 +50,9 @@ $prRule = @{
         required_review_thread_resolution = $false
     }
 }
-$checksRule = @{ type = 'required_status_checks'; parameters = @{ strict_required_status_checks_policy = $false; required_status_checks = $checks } }
+# do_not_enforce_on_create: the Scenario B demo creates demo/queue-base by pushing a copy of main;
+# a brand-new branch has no statuses yet, so enforcing checks on creation would reject that push.
+$checksRule = @{ type = 'required_status_checks'; parameters = @{ strict_required_status_checks_policy = $false; do_not_enforce_on_create = $true; required_status_checks = $checks } }
 
 $rulesets = @(
     @{
