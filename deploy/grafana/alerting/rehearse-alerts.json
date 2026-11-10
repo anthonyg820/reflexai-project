@@ -1,0 +1,49 @@
+{
+  "title": "rehearse",
+  "interval": 30,
+  "rules": [
+    {
+      "uid": "rehearse-api-5xx",
+      "title": "Rehearse API 5xx ratio",
+      "condition": "C",
+      "for": "1m",
+      "noDataState": "OK",
+      "execErrState": "Error",
+      "labels": { "severity": "page", "service": "rehearse-api" },
+      "annotations": {
+        "summary": "{{ $labels.deployment_environment_name }}: {{ humanizePercentage $values.B.Value }} of API requests are failing",
+        "description": "More than 2% of rehearse-api requests returned 5xx for 1 minute. Check the deploy markers on the Rehearse dashboard: in Scenario A this is new config running on an old image.",
+        "__dashboardUid__": "rehearse-overview",
+        "__panelId__": "9"
+      },
+      "data": [
+        {
+          "refId": "A",
+          "relativeTimeRange": { "from": 600, "to": 0 },
+          "datasourceUid": "${PROMETHEUS_UID}",
+          "model": {
+            "refId": "A",
+            "instant": true,
+            "range": false,
+            "expr": "(sum by (cloud_provider, deployment_environment_name) (rate(http_server_request_duration_seconds_count{job=~\".*rehearse-api\", http_response_status_code=~\"5..\"}[2m])) or (sum by (cloud_provider, deployment_environment_name) (rate(http_server_request_duration_seconds_count{job=~\".*rehearse-api\"}[2m])) * 0)) / sum by (cloud_provider, deployment_environment_name) (rate(http_server_request_duration_seconds_count{job=~\".*rehearse-api\"}[2m]))"
+          }
+        },
+        {
+          "refId": "B",
+          "datasourceUid": "__expr__",
+          "model": { "refId": "B", "type": "reduce", "expression": "A", "reducer": "last" }
+        },
+        {
+          "refId": "C",
+          "datasourceUid": "__expr__",
+          "model": {
+            "refId": "C",
+            "type": "threshold",
+            "expression": "B",
+            "conditions": [{ "evaluator": { "type": "gt", "params": [0.02] } }]
+          }
+        }
+      ]
+    }
+  ]
+}

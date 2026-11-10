@@ -180,7 +180,7 @@ grafana-import: ## (Re)load the Rehearse dashboard into local Grafana and make i
 ##@ Quality (what CI runs)
 
 .PHONY: check
-check: lint typecheck test validate-config lint-workflows lint-shell ## Everything CI checks before a merge
+check: lint typecheck test test-policy validate-config lint-workflows lint-shell ## Everything CI checks before a merge
 
 .PHONY: build
 build: ## Build all packages and apps
@@ -219,7 +219,12 @@ lint-workflows: ensure-actionlint ## Lint GitHub Actions workflows
 
 .PHONY: lint-shell
 lint-shell: ensure-shellcheck ## Lint release shell scripts
-	shellcheck -x -P deploy/scripts deploy/scripts/*.sh
+	shellcheck -x -P deploy/scripts deploy/scripts/*.sh demo/review-queue/*.sh
+
+.PHONY: test-policy
+test-policy: ## Review policy unit tests + check the Scenario B demo patches still apply
+	node --test scripts/review-policy/*.test.mjs
+	@for p in demo/review-queue/*.patch; do git apply --check "$$p" || git apply --check -R "$$p"; done
 
 .PHONY: render
 render: ## Render every release spec with dummy digests into .rendered/ (to inspect what would ship)
@@ -331,9 +336,14 @@ rollback: ## Roll back an environment: make rollback CLOUD=gcp ENV=prod
 	gh workflow run rollback.yml -f cloud=$(CLOUD) -f environment=$(ENV)
 
 .PHONY: demo
-demo: ## Run the Scenario A demo workflow on gcp-dev: make demo MODE=legacy-order|guarded|recover
-	@[[ -n "$(MODE)" ]] || { echo "usage: make demo MODE=legacy-order|guarded|recover"; exit 1; }
+demo: ## Run the Scenario A demo workflow on gcp-dev: make demo MODE=legacy-order|guarded|rebuild-drift|recover
+	@[[ -n "$(MODE)" ]] || { echo "usage: make demo MODE=legacy-order|guarded|rebuild-drift|recover"; exit 1; }
 	gh workflow run demo-scenario-a.yml -f mode=$(MODE)
+
+.PHONY: demo-b
+demo-b: ## Run the Scenario B (review queue) demo workflow: make demo-b MODE=open|cleanup
+	@[[ "$(MODE)" == open || "$(MODE)" == cleanup ]] || { echo "usage: make demo-b MODE=open|cleanup"; exit 1; }
+	gh workflow run demo-scenario-b.yml -f mode=$(MODE)
 
 .PHONY: status
 status: ## Recent release / promote / infra runs

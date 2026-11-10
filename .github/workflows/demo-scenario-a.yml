@@ -1,15 +1,22 @@
 # Interview demo for Scenario A ("right config, wrong image") on gcp-dev.
+# Every run starts from a clean gcp-dev (it redeploys the last real release if
+# an earlier demo left a demo revision serving), so runs never depend on each
+# other and can be repeated as often as you like.
 #
-# legacy-order: reproduce the incident. Change config on the running service
-#   FIRST (what the old "terraform apply, then build + deploy" job did), with
-#   the image that doesn't know the new value. Cloud Run makes a revision with
-#   new config + old image, and every tenant gets 500s.
-#
-# guarded: the same config change, but with CONFIG_VALIDATION=startup (the
-#   default). The new revision fails its startup probe, Cloud Run never moves
-#   traffic to it, and users see nothing.
-#
-# recover: redeploy the current version through the normal release path.
+# legacy-order:  reproduce the incident. Push the new config value to the
+#   running service FIRST with the old image (what the old "terraform apply,
+#   then build + deploy" job did). Cloud Run makes a revision with new config +
+#   old image, every tenant gets 500s, and the 5xx alert fires. Then (unless
+#   auto_recover=false) the normal release path puts dev back, like the new
+#   image arriving ~9 minutes later.
+# guarded:       the same config change with startup validation (the default).
+#   The new revision fails its startup probe, traffic never moves, users see
+#   nothing.
+# rebuild-drift: the other half of the incident: "the image in production is
+#   not the one that was tested". Rebuild the api image from the exact commit
+#   that is deployed and compare digests, then show dev/uat/prod all run one
+#   digest because promotion copies, never rebuilds.
+# recover:       just put gcp-dev back on the last real release.
 name: "Demo: Scenario A"
 
 on:
@@ -17,13 +24,25 @@ on:
     inputs:
       mode:
         type: choice
-        options: [legacy-order, guarded, recover]
+        options: [legacy-order, guarded, rebuild-drift, recover]
         required: true
+      minutes:
+        description: "legacy-order/guarded: how long to send traffic (the alert needs ~2-3 min)"
+        type: number
+        default: 4
+      auto_recover:
+        description: "legacy-order: put gcp-dev back afterwards"
+        type: boolean
+        default: true
 
 permissions:
   contents: read
   id-token: write
   deployments: write
+
+concurrency:
+  group: demo-scenario-a
+  cancel-in-progress: false
 
 env:
   GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
@@ -31,11 +50,62 @@ env:
   SVC: rehearse-dev-api
 
 jobs:
-  demo:
-    if: inputs.mode != 'recover'
+  prepare:
+    name: Find the last real release
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      dirty: ${{ steps.v.outputs.dirty }}
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - id: v
+        # Real releases label their revisions with rehearse-version, and the web
+        # service is never touched by the demo, so its newest labelled revision
+        # is the version gcp-dev should be on.
+        run: |
+          gcr=(--project "$GCP_PROJECT_ID" --region "$GCP_REGION")
+          v="$(gcloud run revisions list --service rehearse-dev-web "${gcr[@]}" --format=json \
+            | jq -r '[.[] | select(.metadata.labels["rehearse-version"])] | sort_by(.metadata.creationTimestamp) | last | .metadata.labels["rehearse-version"]')"
+          [[ -n "$v" && "$v" != "null" ]] || { echo "::error::no released version found on rehearse-dev-web"; exit 1; }
+          serving="$(gcloud run services describe "$SVC" "${gcr[@]}" --format=json \
+            | jq -r '[.status.traffic[]? | select(.percent > 0) | .revisionName] | join(",")')"
+          dirty=false
+          [[ "$serving" == *demo* ]] && dirty=true
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "dirty=$dirty" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Scenario A demo: ${{ inputs.mode }}"
+            echo "- Last real release: \`${v:0:7}\`"
+            echo "- $SVC serving: \`$serving\` $([[ $dirty == true ]] && echo '(left over from an earlier demo, resetting first)')"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  reset:
+    name: Reset gcp-dev
+    needs: prepare
+    if: inputs.mode == 'recover' || (inputs.mode != 'rebuild-drift' && needs.prepare.outputs.dirty == 'true')
+    uses: ./.github/workflows/deploy-gcp.yml
+    secrets: inherit
+    with:
+      environment: dev
+      version: ${{ needs.prepare.outputs.version }}
+
+  incident:
+    name: "Config change, old image (${{ inputs.mode }})"
+    needs: [prepare, reset]
+    if: >-
+      always() && needs.prepare.result == 'success'
+      && contains(fromJSON('["success","skipped"]'), needs.reset.result)
+      && contains(fromJSON('["legacy-order","guarded"]'), inputs.mode)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment: gcp-dev
+    env:
+      GRAFANA_URL: ${{ vars.GRAFANA_URL }}
+      GRAFANA_TOKEN: ${{ secrets.GRAFANA_ANNOTATION_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: google-github-actions/auth@v2
@@ -44,57 +114,107 @@ jobs:
           service_account: ${{ vars.GCP_DEPLOYER_SA }}
       - uses: google-github-actions/setup-gcloud@v2
       - name: Push a config value the running image doesn't understand
+        id: change
         run: |
+          gcr=(--project "$GCP_PROJECT_ID" --region "$GCP_REGION")
+          image="$(gcloud run services describe "$SVC" "${gcr[@]}" --format=json | jq -r '.spec.template.spec.containers[] | select(.name == "api") | .image')"
           vars="SCORING_RUBRIC=rubric-c"
           [[ "${{ inputs.mode }}" == "legacy-order" ]] && vars="$vars,CONFIG_VALIDATION=lazy"
-          echo "Updating $SVC env: $vars (image unchanged)"
-          set +e
-          gcloud run services update "$SVC" --project "$GCP_PROJECT_ID" --region "$GCP_REGION" \
-            --container api --update-env-vars "$vars" --revision-suffix "demo-$(date +%s)" --update-labels app=rehearse-demo --quiet
-          echo "gcloud exit code: $? (non-zero means the new revision never became ready)"
-          exit 0
-      - name: Probe what users see for 60 seconds
-        run: |
-          url="$(gcloud run services describe "$SVC" --project "$GCP_PROJECT_ID" --region "$GCP_REGION" --format='value(status.url)')"
-          ok=0; err=0
-          for _ in $(seq 1 30); do
-            code="$(curl -s -o /dev/null -w '%{http_code}' -H 'x-tenant-id: acme-crisis-line' "$url/api/stats")"
-            if [[ "$code" == "200" ]]; then ok=$((ok + 1)); else err=$((err + 1)); fi
-            sleep 2
-          done
+          echo "started=$(date +%s)" >> "$GITHUB_OUTPUT"
+          bash deploy/scripts/demo-annotate.sh "Scenario A ${{ inputs.mode }}: $vars pushed, image unchanged" scenario-a
+          # --async: return at once so the probe sees the whole timeline, the way
+          # users did while the old job was still busy building the image.
+          gcloud run services update "$SVC" "${gcr[@]}" --container api --update-env-vars "$vars" \
+            --revision-suffix "demo-$(date +%s)" --update-labels app=rehearse-demo --async --quiet
           {
-            echo "### Scenario A demo: ${{ inputs.mode }}"
-            echo "Requests to /api/stats over 60s: **$ok OK**, **$err errors**"
+            echo "- Config pushed: \`$vars\`"
+            echo "- Image (unchanged): \`${image##*@}\`"
             echo
-            echo "Serving traffic:"
-            gcloud run services describe "$SVC" --project "$GCP_PROJECT_ID" --region "$GCP_REGION" --format=json \
-              | jq -r '.status.traffic[] | "- \(.revisionName): \(.percent)%"'
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Probe what users see
+        run: bash deploy/scripts/demo-probe.sh "$SVC" "$(( ${{ inputs.minutes }} * 60 ))" "${{ steps.change.outputs.started }}"
+      - name: What the fix does
+        if: always()
+        run: |
+          {
+            echo
+            if [[ "${{ inputs.mode }}" == "legacy-order" ]]; then
+              echo "**Why it broke:** config reached the service before the image that understands it. Grafana's"
+              echo "\`Rehearse API 5xx ratio\` alert fires about 2 minutes in, before any person reports it."
+            else
+              echo "**Why nothing broke:** the new revision validated its config at startup, failed its probe,"
+              echo "and Cloud Run kept 100% of traffic on the old revision. CI and the release renderer reject"
+              echo "\`rubric-c\` for this commit too, so a real release never gets this far."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          bash deploy/scripts/demo-annotate.sh "Scenario A ${{ inputs.mode }}: probe finished" scenario-a
 
-  recover-version:
-    if: inputs.mode == 'recover'
+  recover:
+    name: New image arrives (redeploy last release)
+    needs: [prepare, incident]
+    if: always() && inputs.mode == 'legacy-order' && inputs.auto_recover && needs.incident.result != 'skipped'
+    uses: ./.github/workflows/deploy-gcp.yml
+    secrets: inherit
+    with:
+      environment: dev
+      version: ${{ needs.prepare.outputs.version }}
+
+  rebuild-drift:
+    name: Rebuild the deployed commit and compare digests
+    needs: prepare
+    if: inputs.mode == 'rebuild-drift'
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.v.outputs.version }}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.version }}
       - uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOYER_SA }}
       - uses: google-github-actions/setup-gcloud@v2
-      - id: v
-        # The last revision created by a real release carries the version label.
+      - uses: imjasonh/setup-crane@v0.4
+      - uses: docker/setup-buildx-action@v3
+      - name: Rebuild api from the same commit (what a per-environment build does)
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
         run: |
-          v="$(gcloud run revisions list --service rehearse-dev-web --project "$GCP_PROJECT_ID" --region "$GCP_REGION" \
-            --format=json | jq -r '[.[] | select(.metadata.labels["rehearse-version"])] | sort_by(.metadata.creationTimestamp) | last | .metadata.labels["rehearse-version"]')"
-          echo "version=$v" >> "$GITHUB_OUTPUT"
-
-  recover:
-    if: inputs.mode == 'recover'
-    needs: recover-version
-    uses: ./.github/workflows/deploy-gcp.yml
-    secrets: inherit
-    with:
-      environment: dev
-      version: ${{ needs.recover-version.outputs.version }}
+          # Same commit, same Dockerfile, same build args; built the way the old
+          # job built it for each environment. Not pushed anywhere.
+          docker buildx build --no-cache --file apps/api/Dockerfile --build-arg "GIT_SHA=$VERSION" \
+            --provenance=false --output type=image,name=rehearse-api-rebuild,push=false \
+            --metadata-file /tmp/rebuild.json .
+          jq -r '."containerimage.digest"' /tmp/rebuild.json > /tmp/rebuild.digest
+      - name: Compare
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          gcloud auth print-access-token | crane auth login "${GCP_REGION}-docker.pkg.dev" -u oauth2accesstoken --password-stdin
+          released="$(crane digest "${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/rehearse/api:sha-$VERSION")"
+          rebuilt="$(cat /tmp/rebuild.digest)"
+          serving_digest() {
+            gcloud run services describe "rehearse-$1-api" --project "$GCP_PROJECT_ID" --region "$GCP_REGION" --format=json 2>/dev/null \
+              | jq -r '.spec.template.spec.containers[] | select(.name == "api") | .image | split("@")[1] // "n/a"' || echo n/a
+          }
+          {
+            echo "#### Same commit \`${VERSION:0:7}\`, two builds"
+            echo "| build | digest |"
+            echo "|---|---|"
+            echo "| released (built once on merge, tested in dev) | \`$released\` |"
+            echo "| rebuilt now (what a per-environment build ships) | \`$rebuilt\` |"
+            echo
+            if [[ "$released" == "$rebuilt" ]]; then
+              echo "The digests match this time, but nothing guarantees it: timestamps, base image tags and"
+              echo "registry downloads all change between builds. Only copying by digest guarantees it."
+            else
+              echo "**Different bytes.** A per-environment build means production runs an image nobody tested."
+            fi
+            echo
+            echo "#### What each environment runs now (promoted by digest, never rebuilt)"
+            echo "| env | api digest |"
+            echo "|---|---|"
+            for env in dev uat prod; do echo "| gcp-$env | \`$(serving_digest "$env")\` |"; done
+            echo
+            echo "Promote refuses to continue if the digest in the next stage would differ."
+          } >> "$GITHUB_STEP_SUMMARY"

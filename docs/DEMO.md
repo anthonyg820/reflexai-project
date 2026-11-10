@@ -1,36 +1,93 @@
-# Interview demo script (about 10 minutes)
+# Interview demo runbook
+
+Both scenarios run on demand from the **Actions** tab (or `make demo …` / `make demo-b …`,
+`.\make demo -Mode …` on Windows). Every run resets its own state first, so you can repeat any
+step as often as you like, in any order.
+
+**One-time setup** (already done unless noted): steps 1–6 in `bootstrap/`, plus
+`7-repo-rules.cmd` for Scenario B. Re-run `6-grafana-dashboard.cmd` with an Admin token so the 5xx
+alert rule exists, and give it an Editor token for deploy markers.
+
+**Before the interview (5 min):**
+1. Run **Demo: Scenario A** with `mode=recover` (dev back on the last release).
+2. Run **Demo: Scenario B** with `mode=cleanup`.
+3. Open tabs: Grafana dashboard (`/d/rehearse-overview`, last 30 minutes, auto-refresh 10s),
+   Grafana Alerting (`/alerting/list`), the Actions tab, the gcp-dev web URL.
+
+---
 
 ## 1. The pipeline in one picture (2 min)
-Open `docs/PLAN.md` §3.2 or the Actions tab. Three points:
-- Merge builds once. The **Release** summary shows the digests, and the **mirror** job proves ECR
-  holds the same `sha256`.
-- **Promote** reads the version from the live environment and refuses to promote if gcp-uat and
-  aws-uat differ, or if the digests differ between clouds.
-- Only `production` needs a human, once. Then GCP prod runs a 10% canary before AWS prod starts.
+`docs/PLAN.md` §3.2, or the last **Release** and **Promote** runs:
+- Merge builds each image **once**; the Release summary lists the digests.
+- **Promote** reads the version running in the previous stage, checks digests, and deploys the
+  same bytes. Nothing is rebuilt per environment.
+- Only `production` needs a person (the compliance second approval). GCP prod gets a 10% canary.
 
-## 2. Scenario A, reproduced (3 min)
-1. Open the Grafana dashboard and the gcp-dev web URL side by side.
-2. Run **Demo: Scenario A** with `mode=legacy-order`. This changes config on the running service
-   with the old image, the same order as the old Terraform-first job.
-3. The dashboard home page errors for every tenant, the 5xx panel spikes and the alert fires. The
-   job summary counts the errors.
-4. Run **Demo: Scenario A** with `mode=recover`. The normal release path redeploys a known-good
-   revision.
+## 2. Scenario A: right config, wrong image
 
-## 3. Scenario A, guarded (2 min)
-1. Run **Demo: Scenario A** with `mode=guarded`. It's the same bad config, but with startup validation.
-2. The new revision fails its startup probe. The summary shows 30/30 OK and 100% traffic still on
-   the old revision. Logs show `Invalid configuration … SCORING_RUBRIC`.
-3. Point out that CI would have rejected this before it got this far: `pnpm validate:config` and the
-   renderer both refuse an unknown rubric for this commit.
+### 2a. Reproduce the incident (`mode=legacy-order`, ~9 min end to end)
+1. Start **Demo: Scenario A**, `mode=legacy-order` (defaults: 4 minutes of traffic, auto-recover on).
+2. Talk while it runs. The job pushes `SCORING_RUBRIC=rubric-c` to the running `rehearse-dev-api`
+   **with the old image**, the order the old Terraform-first job used.
+3. Watch Grafana: a purple "demo" marker, the API 5xx panel jumps to 100%, the web dashboard page
+   errors for every tenant, and about 2 minutes in **Rehearse API 5xx ratio** fires. The alert
+   noticed, not a person.
+4. Job summary: the timeline (config pushed → new revision took traffic → first user error) and
+   the OK/error counts.
+5. The `recover` job then redeploys the last real release through the normal path, like the new
+   image finally arriving. The whole run takes about as long as their outage did.
+
+### 2b. Same change, guarded (`mode=guarded`, ~5 min)
+1. Run `mode=guarded`: the same config with startup validation (the default).
+2. Summary: **all requests OK**; the newest revision is `Ready: False`, 100% of traffic stays on the
+   old revision. Logs show `Invalid configuration … SCORING_RUBRIC`.
+3. Point out the earlier gates: CI (`pnpm validate:config`) and the release renderer reject
+   `rubric-c` for this commit, so a real release never gets this far.
+
+### 2c. "The image in production is not the one that was tested" (`mode=rebuild-drift`, ~5 min)
+1. Run `mode=rebuild-drift`. It rebuilds the api image from the exact deployed commit.
+2. Summary: released digest ≠ rebuilt digest (same commit, different bytes), and dev, UAT and prod
+   all run **one** digest because promotion copies by digest.
+
+### 2d. The fix, in one sentence each
+- Build once, deploy by digest (`release.yml`, `promote.yml`).
+- Image + config + revision shape ship as one revision (`scripts/render-release.mjs`); Terraform
+  owns only the service shell and ignores the revision.
+- Config is validated in CI, at render time and at startup; bad revisions never get traffic.
+- Canary + 5xx alert + deploy markers catch what's left, before a customer does.
+
+## 3. Scenario B: the review queue
+
+### 3a. Open the queue (`mode=open`, ~5 min until the low-risk PR merges)
+1. Run **Demo: Scenario B**, `mode=open`. It copies `main` to `demo/queue-base` and opens three PRs:
+   | PR | Policy says | What happens |
+   |---|---|---|
+   | Real dev-tooling dependency update from npm | `risk:low` | Merges itself when CI is green. No human. |
+   | Agent-written bug fix + test (`agent` label) | `risk:medium` | Waits for one human approval; bot approvals never count |
+   | Infra change (UAT api becomes private) | `risk:high` | Waits for a platform code owner (ruleset + policy) |
+2. Open the PR list: risk labels, the `review-policy` status with its reason, CI running.
+3. A few minutes later the low-risk PR is merged by auto-merge.
+4. Approve the agent fix. The **Review policy** workflow re-runs, the status turns green, and you
+   can merge it. Approve the infra PR the same way (you're the code owner).
+
+### 3b. Talking points
+- The policy is code (`scripts/review-policy/classify.mjs`, unit tested). Rules are by path and
+  dependency semver, not by trust in who (or what) wrote the change.
+- Humans spend review time on intent and risk; required checks (lint, types, tests, config,
+  render, image scan) handle the mechanics, so they must be trustworthy (quarantine flaky tests).
+- Compliance's "second person" sits on the **production deployment** (Promote → approve), which
+  GitHub records with who approved which build. Every change still flows dev → UAT → prod.
+- With a real team: turn on "Prevent self-review" on `production` (it's off here because I'm the
+  only reviewer), and use Renovate's schedule and grouping (`renovate.json`) to batch updates.
+
+### 3c. Reset
+Run `mode=cleanup` (or just `mode=open` again). It closes the demo PRs and deletes every `demo/*`
+branch; `main` is never touched.
 
 ## 4. Rollback and drift (1 min)
 - **Rollback** with `cloud=gcp env=prod` moves traffic to the previous revision in seconds.
 - **Drift detection** runs nightly and opens an issue for anything changed outside Terraform.
 
-## 5. Scenario B talking points (2 min)
-- Renovate risk tiers: low-risk updates merge themselves on green, and they still flow
-  dev → UAT → prod with a human approving prod (the compliance "second person").
-- CODEOWNERS means only risky paths need a platform reviewer.
-- Make required checks trustworthy first (quarantine flaky tests, `turbo --affected`), so human
-  review focuses on intent.
+## Local fallback (no internet)
+`make scenario-a` / `.\make scenario-a` shows Scenario A in 10 seconds on your laptop, and
+`make test-policy` runs the review-policy tests.

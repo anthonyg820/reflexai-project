@@ -1,0 +1,33 @@
+diff --git a/apps/api/src/scoring/rubrics.ts b/apps/api/src/scoring/rubrics.ts
+index ddb56d7..eb1e942 100644
+--- a/apps/api/src/scoring/rubrics.ts
++++ b/apps/api/src/scoring/rubrics.ts
+@@ -17,7 +17,10 @@ export interface RubricDefinition {
+ const EMPATHY = ["understand", "sorry", "hear you", "that sounds", "makes sense", "feel", "thank you for"];
+ const REFLECTIONS = ["it sounds like", "what i'm hearing", "so you're saying", "you feel", "you're feeling"];
+ 
+-const countHits = (text: string, phrases: string[]) => phrases.filter((p) => text.includes(p)).length;
++// Phones and some keyboards type curly apostrophes ("I’m"), which never matched
++// phrases like "what i'm hearing". Normalise them before matching.
++const normalise = (text: string) => text.replace(/[\u2018\u2019]/g, "'");
++const countHits = (text: string, phrases: string[]) => phrases.filter((p) => normalise(text).includes(p)).length;
+ const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
+ 
+ export const RUBRICS: Record<string, RubricDefinition> = {
+diff --git a/apps/api/src/scoring/scoring.test.ts b/apps/api/src/scoring/scoring.test.ts
+index 3eaa5d1..1b5f92f 100644
+--- a/apps/api/src/scoring/scoring.test.ts
++++ b/apps/api/src/scoring/scoring.test.ts
+@@ -32,6 +32,12 @@ describe("rubrics", () => {
+     expect(good).toBeGreaterThan(bad);
+     expect(good).toBeLessThanOrEqual(100);
+   });
++
++  it("matches phrases typed with curly apostrophes", () => {
++    const straight = getRubric("rubric-b").score({ traineeMessages: ["What i'm hearing is that work is a lot?"] });
++    const curly = getRubric("rubric-b").score({ traineeMessages: ["What I\u2019m hearing is that work is a lot?"] });
++    expect(curly).toBe(straight);
++  });
+ });
+ 
+ describe("nextPersonaLine", () => {
