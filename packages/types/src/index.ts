@@ -23,6 +23,11 @@ export interface Scenario {
   skills: string[];
   /** Rough length of a practice run. */
   minutes: number;
+  /** The rubric sessions of this scenario are scored with (the environment default when the scenario has none). */
+  rubricId: string;
+  rubricName: string;
+  /** False when the scenario uses the environment default. */
+  rubricExplicit: boolean;
   createdAt: string;
 }
 
@@ -35,6 +40,8 @@ export interface CreateScenarioRequest {
   channel?: string;
   skills?: string[];
   minutes?: number;
+  /** Omit to use the environment's default rubric. */
+  rubricId?: string;
 }
 
 export type MessageRole = "persona" | "trainee";
@@ -54,6 +61,8 @@ export interface SessionSummary {
   scenarioTitle: string;
   persona: string;
   status: SessionStatus;
+  /** Score at or above the rubric's passing score; null while active. */
+  passed: boolean | null;
   score: number | null;
   rubric: string | null;
   createdAt: string;
@@ -112,6 +121,7 @@ export interface ScenarioStats {
   title: string;
   persona: string;
   difficulty: Difficulty;
+  rubricName: string;
   sessions: number;
   completed: number;
   averageScore: number | null;
@@ -126,6 +136,7 @@ export interface RubricInfo {
 }
 
 export interface Stats {
+  /** The environment's default rubric (SCORING_RUBRIC), used by scenarios without their own. */
   rubric: RubricInfo;
   totals: {
     scenarios: number;
@@ -159,8 +170,10 @@ export interface RubricRule {
 export interface RubricDetail extends RubricInfo {
   description: string;
   rules: RubricRule[];
-  /** The rubric this environment scores with (SCORING_RUBRIC). */
-  active: boolean;
+  /** This environment's default rubric (SCORING_RUBRIC), used by scenarios without their own. */
+  isDefault: boolean;
+  /** This tenant's scenarios that use this rubric (explicitly or through the default). */
+  scenarios: { id: string; title: string }[];
   /** This tenant's completed sessions scored with this rubric. */
   sessions: number;
   averageScore: number | null;

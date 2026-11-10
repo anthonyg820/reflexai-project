@@ -5,18 +5,22 @@ import { useMemo, useState } from "react";
 import { startSession } from "@/app/actions";
 import { Avatar, DifficultyBadge, difficultyLabel, outlineAccentButtonClass } from "./ui";
 
-export function ScenarioLibrary({ scenarios, rubricName }: { scenarios: Scenario[]; rubricName: string }) {
+export function ScenarioLibrary({ scenarios, rubrics }: { scenarios: Scenario[]; rubrics: { id: string; name: string }[] }) {
   const [query, setQuery] = useState("");
   const [level, setLevel] = useState<Difficulty | "all">("all");
+  const [rubric, setRubric] = useState("all");
+  // Only offer rubrics that some scenario here uses.
+  const usedRubrics = rubrics.filter((r) => scenarios.some((s) => s.rubricId === r.id));
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return scenarios.filter(
       (s) =>
         (level === "all" || s.difficulty === level) &&
-        (!q || [s.title, s.persona, s.description, ...s.skills].some((f) => f.toLowerCase().includes(q))),
+        (rubric === "all" || s.rubricId === rubric) &&
+        (!q || [s.title, s.persona, s.description, s.rubricName, ...s.skills].some((f) => f.toLowerCase().includes(q))),
     );
-  }, [scenarios, query, level]);
+  }, [scenarios, query, level, rubric]);
 
   const pill = (active: boolean) =>
     `min-h-11 rounded-full border px-4 text-sm ${
@@ -35,6 +39,21 @@ export function ScenarioLibrary({ scenarios, rubricName }: { scenarios: Scenario
             placeholder="Search by title, persona or skill"
             className="h-11 flex-1 rounded-[10px] border border-line-strong bg-card px-3.5 text-ink outline-none placeholder:text-muted focus:border-accent"
           />
+        </label>
+        <label className="flex">
+          <span className="sr-only">Rubric</span>
+          <select
+            value={rubric}
+            onChange={(e) => setRubric(e.target.value)}
+            className="h-11 rounded-[10px] border border-line-strong bg-card px-3 text-ink outline-none focus:border-accent"
+          >
+            <option value="all">All rubrics</option>
+            {usedRubrics.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
         </label>
         <div role="group" aria-label="Difficulty" className="flex flex-wrap gap-1.5">
           <button type="button" aria-pressed={level === "all"} onClick={() => setLevel("all")} className={pill(level === "all")}>
@@ -81,7 +100,11 @@ export function ScenarioLibrary({ scenarios, rubricName }: { scenarios: Scenario
               )}
               <div className="mt-auto flex items-center justify-between gap-2.5 border-t border-line-soft pt-3.5">
                 <span className="text-xs text-muted">
-                  Rubric: <span className="font-medium text-ink">{rubricName}</span> · ~{s.minutes} min
+                  Rubric:{" "}
+                  <Link href={`/rubrics#${s.rubricId}`} className="font-medium text-ink hover:text-accent">
+                    {s.rubricName}
+                  </Link>{" "}
+                  · ~{s.minutes} min
                 </span>
                 <form action={startSession.bind(null, s.id)}>
                   <button type="submit" className={outlineAccentButtonClass}>

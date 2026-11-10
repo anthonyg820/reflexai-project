@@ -27,7 +27,7 @@ alert rule exists, and give it an Editor token for deploy markers.
 
 ### 2a. Reproduce the incident (`mode=legacy-order`, ~9 min end to end)
 1. Start **Demo: Scenario A**, `mode=legacy-order` (defaults: 4 minutes of traffic, auto-recover on).
-2. Talk while it runs. The job pushes `SCORING_RUBRIC=rubric-c` to the running `rehearse-dev-api`
+2. Talk while it runs. The job pushes `SCORING_RUBRIC=rubric-c` (the environment's default rubric) to the running `rehearse-dev-api`
    **with the old image**, the order the old Terraform-first job used.
 3. Open the app's **Rubrics** page: it stays up and says the configured `rubric-c` is unknown to this
    release, which is exactly the mismatch.

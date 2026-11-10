@@ -35,7 +35,7 @@ export function CoachPanel({ coach }: { coach: Coaching }) {
       </section>
 
       <p className="text-xs leading-relaxed text-muted">
-        Coaching is calculated from your replies so far. Your score is calculated by the active rubric when you end the session.
+        Coaching is calculated from your replies so far. Your score comes from this scenario’s rubric when you end the session.
       </p>
     </aside>
   );

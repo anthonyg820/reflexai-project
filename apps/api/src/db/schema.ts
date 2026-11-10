@@ -13,6 +13,8 @@ export const scenarios = pgTable(
     channel: text("channel").notNull().default(""),
     skills: jsonb("skills").$type<string[]>().notNull().default([]),
     minutes: integer("minutes").notNull().default(10),
+    /** null = the environment's default rubric (SCORING_RUBRIC). */
+    rubricId: text("rubric_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("scenarios_tenant_idx").on(t.tenantId)],

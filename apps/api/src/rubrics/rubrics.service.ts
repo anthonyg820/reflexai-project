@@ -3,10 +3,10 @@ import type { RubricPreview, Rubrics } from "@rehearse/types";
 import { and, eq, sql } from "drizzle-orm";
 import { CONFIG, type ApiConfig } from "../config";
 import { DB, type Db } from "../db/db.module";
-import { sessions } from "../db/schema";
+import { scenarios, sessions } from "../db/schema";
 import { criteria } from "../scoring/coaching";
-import { CRITERIA_INFO, RUBRIC_INFO } from "../scoring/rubric-info";
-import { RUBRICS } from "../scoring/rubrics";
+import { CRITERIA_INFO } from "../scoring/rubric-info";
+import { RUBRICS, describeRules } from "../scoring/rubrics";
 
 @Injectable()
 export class RubricsService {
@@ -32,6 +32,11 @@ export class RubricsService {
       .groupBy(sessions.rubric);
 
     const configured = this.config.SCORING_RUBRIC;
+    const tenantScenarios = await this.db
+      .select({ id: scenarios.id, title: scenarios.title, rubricId: scenarios.rubricId })
+      .from(scenarios)
+      .where(eq(scenarios.tenantId, tenantId))
+      .orderBy(scenarios.title);
     return {
       configured,
       configuredKnown: configured in RUBRICS,
@@ -42,9 +47,10 @@ export class RubricsService {
           id: r.id,
           name: r.name,
           passingScore: r.passingScore,
-          description: RUBRIC_INFO[r.id]?.description ?? "",
-          rules: RUBRIC_INFO[r.id]?.rules ?? [],
-          active: r.id === configured,
+          description: r.description,
+          rules: describeRules(r),
+          isDefault: r.id === configured,
+          scenarios: tenantScenarios.filter((s) => (s.rubricId ?? configured) === r.id).map(({ id, title }) => ({ id, title })),
           sessions: u?.sessions ?? 0,
           averageScore: u?.averageScore == null ? null : Math.round(Number(u.averageScore)),
           passRate: u && u.sessions > 0 ? Math.round((100 * passed) / u.sessions) : null,

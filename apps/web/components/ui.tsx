@@ -75,9 +75,10 @@ export function ButtonLink({ href, children, secondary }: { href: string; childr
   );
 }
 
-export function ScoreBadge({ score, passing }: { score: number | null; passing?: number | null }) {
+/** Pass/fail colour from `passed` (preferred) or by comparing with `passing`. */
+export function ScoreBadge({ score, passing, passed }: { score: number | null; passing?: number | null; passed?: boolean | null }) {
   if (score === null) return <span className="text-muted">—</span>;
-  const pass = passing === undefined || passing === null || score >= passing;
+  const pass = passed ?? (passing === undefined || passing === null || score >= passing);
   return (
     <span
       className={`inline-block min-w-10 rounded-full px-2.5 py-1 text-center text-[13px] font-semibold tabular-nums ${
