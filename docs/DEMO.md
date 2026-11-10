@@ -4,11 +4,18 @@ Both scenarios run on demand from the **Actions** tab (or `make demo …` / `mak
 `.\make demo -Mode …` on Windows). Every run resets its own state first, so you can repeat any
 step as often as you like, in any order.
 
-**One-time setup** (already done unless noted): steps 1–6 in `bootstrap/`, plus
-`7-repo-rules.cmd` for Scenario B. Re-run `6-grafana-dashboard.cmd` with an Admin token so the 5xx
-alert rule exists, and give it an Editor token for deploy markers.
+**One-time setup (done):** launchers 1–7 in `bootstrap/`. `6-grafana-dashboard.cmd` ran with an
+Admin token (dashboard + the 5xx alert rule) and stored an Editor token for deploy markers;
+`7-repo-rules.cmd` created the `main` and `demo-queue` rulesets and turned on auto-merge.
+If either is ever re-created, re-run that launcher; both are safe to repeat.
 
-**Opening:** present `docs/presentation/index.html` full screen (press `F`; arrow keys to move; `A` approves prod on slide 3). Its last slide links straight to the app, Actions and Grafana.
+**Opening:** present `docs/presentation/index.html` full screen (press `F`, arrow keys to move).
+Eight slides: 1 goal · 2 stack · 3 one digest, one release (GCP / AWS tabs) · 4 CI/CD (click a
+phase for details; `A` approves prod) · 5 Problem 1 · 6 Problem 2 · 7 the review policy · 8 live
+demo, whose links go straight to the app, Actions and Grafana.
+
+**The day before:** promote the latest release so UAT and prod have every fix (**Promote**
+`target=uat`, then `target=prod` and approve), and do one practice run of each scenario.
 
 **Before the interview (5 min):**
 1. Run **Demo: Scenario A** with `mode=recover` (dev back on the last release).
@@ -19,7 +26,7 @@ alert rule exists, and give it an Editor token for deploy markers.
 ---
 
 ## 1. The pipeline in one picture (2 min)
-`docs/PLAN.md` §3.2, or the last **Release** and **Promote** runs:
+Slides 3–4, `docs/PLAN.md` §3.2, or the last **Release** and **Promote** runs:
 - Merge builds each image **once**; the Release summary lists the digests.
 - **Promote** reads the version running in the previous stage, checks digests, and deploys the
   same bytes. Nothing is rebuilt per environment.
@@ -70,13 +77,16 @@ alert rule exists, and give it an Editor token for deploy markers.
    | Agent-written bug fix + test (`agent` label) | `risk:medium` | Waits for one human approval; bot approvals never count |
    | Infra change (UAT api becomes private) | `risk:high` | Waits for a platform code owner (ruleset + policy) |
 2. Open the PR list: risk labels, the `review-policy` status with its reason, CI running.
+   Slide 7 has the rules behind each label (when it runs, what it reads, first match wins).
 3. A few minutes later the low-risk PR is merged by auto-merge.
 4. Approve the agent fix. The **Review policy** workflow re-runs, the status turns green, and you
    can merge it. Approve the infra PR the same way (you're the code owner).
 
 ### 3b. Talking points
 - The policy is code (`scripts/review-policy/classify.mjs`, unit tested). Rules are by path and
-  dependency semver, not by trust in who (or what) wrote the change.
+  dependency semver, read from the diff: not commit messages or PR titles, and not trust in who
+  (or what) wrote the change. A hand-added `risk:` label is corrected on the next run, and the
+  rules always run from `main`, so a PR can't change its own verdict.
 - Humans spend review time on intent and risk; required checks (lint, types, tests, config,
   render, image scan) handle the mechanics, so they must be trustworthy (quarantine flaky tests).
 - Compliance's "second person" sits on the **production deployment** (Promote → approve), which
