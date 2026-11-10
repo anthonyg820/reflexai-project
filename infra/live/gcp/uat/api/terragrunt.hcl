@@ -16,4 +16,7 @@ include "common" {
 inputs = {
   project_id = include.cloud.locals.project_id
   region     = include.cloud.locals.region
+
+  # UAT api only for authenticated callers (the web service and testers with IAM).
+  public = false
 }
