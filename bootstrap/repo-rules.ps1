@@ -48,6 +48,10 @@ $prRule = @{
         require_code_owner_review         = $true  # platform paths (.github/CODEOWNERS)
         require_last_push_approval        = $false
         required_review_thread_resolution = $false
+        # GitHub now defaults this to true: any PR whose latest commit isn't attributed to a person
+        # (Renovate, Dependabot, GitHub Actions) needs an approval, which would block the low-risk lane.
+        # The review-policy status already governs bot PRs, and bot approvals never count there.
+        require_extra_approval_for_unattributed_changes = $false
     }
 }
 # do_not_enforce_on_create: the Scenario B demo creates demo/queue-base by pushing a copy of main;
