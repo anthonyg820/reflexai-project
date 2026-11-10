@@ -9,8 +9,8 @@
 <body>
 <!--
   Interview summary, shown before the live demo. Open this file directly in a browser
-  (no build step, no network needed). Keys: ← → / space / PageUp / PageDown, 1-7 to jump,
-  A to approve prod on slide 3 (click a stage for details; ↑ ↓ switch, Esc closes), F for full screen. Links for the last slide: links.js
+  (no build step, no network needed). Keys: ← → / space / PageUp / PageDown, 1-8 to jump,
+  A to approve prod on slide 4 (click a stage for details; ↑ ↓ switch, Esc closes), F for full screen. Links for the last slide: links.js
   (copy links.example.js; links.js is git-ignored).
 -->
 <div class="viewport">
@@ -20,10 +20,10 @@
     <span class="brand-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
     <span class="brand-name">RehearseAI</span>
   </div>
-  <div class="chrome-top" id="counter" aria-live="polite">01 / 07</div>
+  <div class="chrome-top" id="counter" aria-live="polite">01 / 08</div>
 
   <!-- 1 · Goal -->
-  <section class="slide s-goal is-active" aria-label="1 of 7: Goal">
+  <section class="slide s-goal is-active" aria-label="1 of 8: Goal">
     <div class="orbit" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b><b></b></div>
     <div class="content">
       <p class="eyebrow reveal" style="--d:0">ReflexAI · Senior Platform Engineer · technical deep dive</p>
@@ -38,7 +38,7 @@
   </section>
 
   <!-- 2 · Stack & architecture -->
-  <section class="slide s-stack" aria-label="2 of 7: Stack and architecture">
+  <section class="slide s-stack" aria-label="2 of 8: Stack and architecture">
     <header class="slide-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Stack &amp; architecture</p>
@@ -80,8 +80,106 @@
     </div>
   </section>
 
-  <!-- 3 · CI/CD -->
-  <section class="slide s-pipeline" aria-label="3 of 7: CI/CD from dev to UAT to prod">
+  <!-- 3 · One digest, one release (GCP / AWS tabs) -->
+  <section class="slide s-release" aria-label="3 of 8: One digest, one release">
+    <header>
+      <p class="eyebrow reveal" style="--d:0">Stack &amp; architecture · the release</p>
+      <h1 class="h-l reveal" style="--d:1; font-size:42px">One digest. One release.</h1>
+      <p class="lede reveal" style="--d:2; margin-top:8px; font-size:16px; max-width:none">Every deploy is one file: the image’s digest, that environment’s config and the revision’s shape, rendered together and shipped together.</p>
+    </header>
+
+    <section class="card rel-digest reveal" style="--d:3" aria-labelledby="rel-what">
+      <h2 class="pol-label" id="rel-what">What a digest is</h2>
+      <div class="rel-ref mono" aria-label="us-east1-docker.pkg.dev/…/rehearse/api@sha256:7c1e4b0f9a2d6e83c5b17f40d29a8e61b3c7f05d4a96e2b18c03f7d5e9a1a94f">
+        <div><span>us-east1-docker.pkg.dev/…/rehearse/api</span><em>registry / repository</em></div>
+        <div class="at"><span>@</span><em>&nbsp;</em></div>
+        <div class="sha"><span id="rel-sha" data-full="sha256:7c1e4b0f9a2d6e83c5b17f40d29a8e61b3c7f05d4a96e2b18c03f7d5e9a1a94f">sha256:7c1e4b0f9a2d6e83c5b17f40d29a8e61b3c7f05d4a96e2b18c03f7d5e9a1a94f</span><em>SHA-256 of the image manifest: change one byte of any layer and this changes</em></div>
+      </div>
+      <p class="rel-tag"><span class="mono">:sha-1dc2fcf</span> a tag is a name pointing at a digest; tags can be moved <span class="arrow">→</span> <b>a digest can’t move:</b> it <i>is</i> the content</p>
+    </section>
+
+    <div class="rel-grid">
+      <section class="card rel-file reveal" style="--d:4" aria-labelledby="rel-file">
+        <div class="rel-file-head">
+          <h2 class="pol-label" id="rel-file">The release file (excerpt)</h2>
+          <div class="rel-tabs" role="tablist" aria-label="Cloud">
+            <button type="button" role="tab" id="tab-gcp" aria-controls="rel-gcp" aria-selected="true">GCP <span>Cloud Run</span></button>
+            <button type="button" role="tab" id="tab-aws" aria-controls="rel-aws" aria-selected="false" tabindex="-1">AWS <span>ECS Fargate</span></button>
+          </div>
+          <span class="rel-fname mono" id="rel-fname">rehearse-prod-api.yaml</span>
+        </div>
+        <div class="rel-panel" role="tabpanel" id="rel-gcp" aria-labelledby="tab-gcp" data-fname="rehearse-prod-api.yaml">
+          <code class="rel-code"><span><i class="c"># rendered by scripts/render-release.mjs  ·  gcp / prod / api</i></span>
+<span><i class="k">spec:</i></span>
+<span>  <i class="k">template:</i></span>
+<span>    <i class="k">metadata:</i></span>
+<span class="hl" style="--m:6">      <i class="k">name:</i> rehearse-prod-api-1dc2fcf-1234-1<span class="mk" style="--m:6">6</span></span>
+<span class="hl" style="--m:2">      <i class="k">labels:</i> <i class="p">{</i> <i class="k">rehearse-version:</i> 1dc2fcf4a8e0… <i class="p">}</i><span class="mk" style="--m:2">2</span></span>
+<span>    <i class="k">spec:</i></span>
+<span>      <i class="k">containers:</i></span>
+<span>        <i class="k">- name:</i> api</span>
+<span class="hl" style="--m:1">          <i class="k">image:</i> …/rehearse/api<i class="a">@sha256:7c1e4b0f…e9a1a94f</i><span class="mk" style="--m:1">1</span></span>
+<span>          <i class="k">env:</i></span>
+<span class="hl" style="--m:3">            <i class="k">- name:</i> DEPLOY_ENV<i class="p">,</i> <i class="k">value:</i> prod<span class="mk" style="--m:3">3</span></span>
+<span>            <i class="k">- name:</i> CLOUD_PROVIDER<i class="p">,</i> <i class="k">value:</i> <i class="w">gcp</i>  <i class="w">← the one config line that differs</i></span>
+<span class="hl" style="--m:4">            <i class="k">- name:</i> DATABASE_URL<i class="p">,</i> <i class="k">secretKeyRef:</i> rehearse-prod-database-url<span class="mk" style="--m:4">4</span></span>
+<span class="hl" style="--m:5">          <i class="k">startupProbe:</i> <i class="k">httpGet:</i> /health<span class="mk" style="--m:5">5</span></span>
+<span>        <i class="k">- name:</i> collector<i class="p">,</i> <i class="k">image:</i> …/collector<i class="a">@sha256:52aa…0c7d</i></span>
+<span>  <i class="k">traffic:</i></span>
+<span>    <i class="k">- revisionName:</i> rehearse-prod-api-00041<i class="p">,</i> <i class="k">percent:</i> 100</span>
+<span class="hl" style="--m:6">    <i class="k">- revisionName:</i> rehearse-prod-api-1dc2fcf-1234-1<i class="p">,</i> <i class="k">percent:</i> 0<i class="p">,</i> <i class="k">tag:</i> candidate<span class="mk" style="--m:6">6</span></span></code>
+          <p class="rel-foot">Knative Service YAML · applied with <code>gcloud run services replace</code></p>
+        </div>
+        <div class="rel-panel" role="tabpanel" id="rel-aws" aria-labelledby="tab-aws" data-fname="rehearse-prod-api.json" hidden>
+          <code class="rel-code"><span><i class="c">// rendered by scripts/render-release.mjs  ·  aws / prod / api</i></span>
+<span><i class="p">{</i></span>
+<span class="hl" style="--m:6">  <i class="k">"family"</i><i class="p">:</i> "rehearse-prod-api"<i class="p">,</i><span class="mk" style="--m:6">6</span></span>
+<span class="hl" style="--m:5">  <i class="k">"cpu"</i><i class="p">:</i> "256"<i class="p">, </i><i class="k">"memory"</i><i class="p">:</i> "1024"<i class="p">, </i><i class="k">"networkMode"</i><i class="p">:</i> "awsvpc"<i class="p">,</i><span class="mk" style="--m:5">5</span></span>
+<span class="hl" style="--m:2">  <i class="k">"tags"</i><i class="p">:</i> <i class="p">[{ </i><i class="k">"key"</i><i class="p">:</i> "rehearse-version"<i class="p">, </i><i class="k">"value"</i><i class="p">:</i> "1dc2fcf4a8e0…"<i class="p"> }],</i><span class="mk" style="--m:2">2</span></span>
+<span>  <i class="k">"containerDefinitions"</i><i class="p">:</i> <i class="p">[{</i></span>
+<span>    <i class="k">"name"</i><i class="p">:</i> "api"<i class="p">,</i></span>
+<span class="hl" style="--m:1">    <i class="k">"image"</i><i class="p">:</i> "…ecr…/rehearse/api<i class="a">@sha256:7c1e4b0f…e9a1a94f</i>"<i class="p">,</i><span class="mk" style="--m:1">1</span></span>
+<span>    <i class="k">"environment"</i><i class="p">:</i> <i class="p">[</i></span>
+<span class="hl" style="--m:3">      <i class="p">{ </i><i class="k">"name"</i><i class="p">:</i> "DEPLOY_ENV"<i class="p">, </i><i class="k">"value"</i><i class="p">:</i> "prod"<i class="p"> },</i><span class="mk" style="--m:3">3</span></span>
+<span>      <i class="p">{ </i><i class="k">"name"</i><i class="p">:</i> "CLOUD_PROVIDER"<i class="p">, </i><i class="k">"value"</i><i class="p">:</i> <i class="w">"aws"</i><i class="p"> }</i>  <i class="w">← the one config line that differs</i></span>
+<span>    <i class="p">],</i></span>
+<span>    <i class="k">"secrets"</i><i class="p">:</i> <i class="p">[{ </i><i class="k">"name"</i><i class="p">:</i> "DATABASE_URL"<i class="p">,</i></span>
+<span class="hl" style="--m:4">      <i class="k">"valueFrom"</i><i class="p">:</i> "arn:aws:ssm:…:parameter/rehearse/prod/database-url"<i class="p"> }]</i><span class="mk" style="--m:4">4</span></span>
+<span>  <i class="p">}, </i><i class="p">{ "name": "collector", "image": "…ecr…/rehearse/collector</i><i class="a">@sha256:52aa…0c7d</i><i class="p">" }</i></span>
+<span>  <i class="p">]</i></span>
+<span><i class="p">}</i></span></code>
+          <p class="rel-foot">ECS task definition · <code>aws ecs register-task-definition</code>; the circuit breaker rolls back a failed deploy</p>
+        </div>
+      </section>
+      <div class="rel-side">
+        <section class="card rel-notes reveal" style="--d:5" aria-labelledby="rel-in">
+          <h2 class="pol-label" id="rel-in">What’s in it</h2>
+          <ol>
+            <li style="--m:1"><span class="mk-n">1</span><div><b>The digest</b><span>Identical in Artifact Registry and ECR. Nothing else is accepted.</span></div></li>
+            <li style="--m:2"><span class="mk-n">2</span><div><b>The version</b><span>The commit. <code>/health</code> reports it to smoke tests.</span></div></li>
+            <li style="--m:3"><span class="mk-n">3</span><div><b>This environment’s config</b><span><code>gcp-prod</code> / <code>aws-prod.env.yaml</code>, validated first.</span></div></li>
+            <li style="--m:4"><span class="mk-n">4</span><div><b>Secrets by reference</b><span>A name: Secret Manager on GCP, SSM on AWS.</span></div></li>
+            <li style="--m:5"><span class="mk-n">5</span><div><b>Shape</b><span>CPU, memory, probes, sidecar: reviewed like code.</span></div></li>
+            <li style="--m:6"><span class="mk-n">6</span><div><b>One new revision</b><span>Cloud Run revision / ECS task definition; the old one stays.</span></div></li>
+          </ol>
+        </section>
+        <section class="card rel-envs reveal" style="--d:6" aria-labelledby="rel-same">
+          <h2 class="pol-label" id="rel-same">Same digest, every environment</h2>
+          <div class="chips"><span style="--c:0">gcp-dev</span><span style="--c:1">gcp-uat</span><span style="--c:2">gcp-prod</span><span class="off" style="--c:3">aws-uat · aws-prod</span></div>
+          <p>all run <span class="mono acc">sha256:7c1e…a94f</span>; only config differs (AWS once enabled)</p>
+        </section>
+      </div>
+    </div>
+
+    <div class="facts rel-facts">
+      <div class="reveal" style="--d:7"><b>Promote copies a pointer</b><span>UAT and prod get dev’s digest. Nothing is rebuilt.</span></div>
+      <div class="reveal" style="--d:8"><b>Rollback is one traffic switch</b><span>The previous revision keeps its old digest and config.</span></div>
+      <div class="reveal" style="--d:9"><b>Two clouds, same bytes</b><span>Copied to ECR; both registries must report one digest.</span></div>
+    </div>
+  </section>
+
+  <!-- 4 · CI/CD -->
+  <section class="slide s-pipeline" aria-label="4 of 8: CI/CD from dev to UAT to prod">
     <header class="slide-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">CI/CD · dev → UAT → prod</p>
@@ -313,8 +411,8 @@
     </div>
   </section>
 
-  <!-- 4 · Scenario A -->
-  <section class="slide s-a" aria-label="4 of 7: Right config, wrong image">
+  <!-- 5 · Scenario A -->
+  <section class="slide s-a" aria-label="5 of 8: Right config, wrong image">
     <header class="slide-head">
       <div>
         <p class="eyebrow warn reveal" style="--d:0">Problem 1</p>
@@ -354,8 +452,8 @@
     </div>
   </section>
 
-  <!-- 5 · Scenario B -->
-  <section class="slide s-b" aria-label="5 of 7: The review queue">
+  <!-- 6 · Scenario B -->
+  <section class="slide s-b" aria-label="6 of 8: The review queue">
     <header>
       <p class="eyebrow warn reveal" style="--d:0">Problem 2</p>
       <h1 class="h-l reveal" style="--d:1">The review queue.</h1>
@@ -384,8 +482,8 @@
     </div>
   </section>
 
-  <!-- 6 · Review policy (Problem 2, in detail) -->
-  <section class="slide s-policy" aria-label="6 of 7: The review policy">
+  <!-- 7 · Review policy (Problem 2, in detail) -->
+  <section class="slide s-policy" aria-label="7 of 8: The review policy">
     <header class="slide-head">
       <div>
         <p class="eyebrow warn reveal" style="--d:0">Problem 2</p>
@@ -455,8 +553,8 @@
     </div>
   </section>
 
-  <!-- 7 · Live demo -->
-  <section class="slide s-demo" aria-label="7 of 7: Time for a live demo">
+  <!-- 8 · Live demo -->
+  <section class="slide s-demo" aria-label="8 of 8: Time for a live demo">
     <div class="glow" aria-hidden="true"></div>
     <div class="ripples" aria-hidden="true"><i></i><i></i><i></i></div>
     <div class="countdown" aria-hidden="true"><span>3</span></div>
