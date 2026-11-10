@@ -33,11 +33,20 @@
   fit();
 
   // ---------- navigation ----------
+  // Slides marked .appendix come after the demo: optional, numbered A1, A2...
+  const mainCount = slides.filter((s) => !s.classList.contains("appendix")).length;
+  const appendixCount = slides.length - mainCount;
   slides.forEach((s, i) => {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "dot";
-    b.textContent = i + 1;
+    b.className = i < mainCount ? "dot" : "dot appx";
+    b.textContent = i < mainCount ? i + 1 : `A${i - mainCount + 1}`;
+    if (i === mainCount) {
+      const sep = document.createElement("span");
+      sep.className = "dot-sep";
+      sep.setAttribute("aria-hidden", "true");
+      dots.append(sep);
+    }
     b.setAttribute("aria-label", `Slide ${i + 1}: ${s.getAttribute("aria-label").replace(/^\d+ of \d+: /, "")}`);
     b.addEventListener("click", () => go(i));
     dots.append(b);
@@ -62,9 +71,12 @@
 
     current = i;
     stage.dataset.slide = String(i);
-    counter.textContent = `${pad(i + 1)} / ${pad(slides.length)}`;
-    progress.style.width = `${((i + 1) / slides.length) * 100}%`;
-    [...dots.children].forEach((d, j) => (j === i ? d.setAttribute("aria-current", "step") : d.removeAttribute("aria-current")));
+    counter.textContent =
+      i < mainCount ? `${pad(i + 1)} / ${pad(mainCount)}` : `appendix ${i - mainCount + 1} / ${appendixCount}`;
+    progress.style.width = `${(Math.min(i + 1, mainCount) / mainCount) * 100}%`;
+    [...dots.querySelectorAll(".dot")].forEach((d, j) =>
+      j === i ? d.setAttribute("aria-current", "step") : d.removeAttribute("aria-current"),
+    );
     prev.disabled = i === 0;
     next.disabled = i === slides.length - 1;
     history.replaceState(null, "", `#${i + 1}`);
