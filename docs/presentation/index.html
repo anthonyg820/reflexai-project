@@ -9,7 +9,7 @@
 <body>
 <!--
   Interview summary, shown before the live demo. Open this file directly in a browser
-  (no build step, no network needed). Keys: ← → / space / PageUp / PageDown, 1-9 to jump (10-13 are an optional appendix: arrows or End),
+  (no build step, no network needed). Keys: ← → / space / PageUp / PageDown, 1-9 to jump (10-15 are an optional appendix: arrows or End),
   A to approve prod on slide 5 (click a stage for details; ↑ ↓ switch, Esc closes), F for full screen. Links for the last slide: links.js
   (copy links.example.js; links.js is git-ignored).
 -->
@@ -23,7 +23,7 @@
   <div class="chrome-top" id="counter" aria-live="polite">01 / 09</div>
 
   <!-- 1 · Goal -->
-  <section class="slide s-goal is-active" aria-label="1 of 13: Goal">
+  <section class="slide s-goal is-active" aria-label="1 of 15: Goal">
     <div class="orbit" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b><b></b></div>
     <div class="content">
       <p class="eyebrow reveal" style="--d:0">ReflexAI · Senior Platform Engineer · technical deep dive</p>
@@ -38,7 +38,7 @@
   </section>
 
   <!-- 2 · The app -->
-  <section class="slide s-app" aria-label="2 of 13: The RehearseAI app">
+  <section class="slide s-app" aria-label="2 of 15: The RehearseAI app">
     <header>
       <p class="eyebrow reveal" style="--d:0">The app</p>
       <h1 class="h-l reveal" style="--d:1; font-size:46px">RehearseAI: practice the hard conversations.</h1>
@@ -101,7 +101,7 @@
   </section>
 
   <!-- 3 · Stack & architecture -->
-  <section class="slide s-stack" aria-label="3 of 13: Stack and architecture">
+  <section class="slide s-stack" aria-label="3 of 15: Stack and architecture">
     <header class="slide-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Stack &amp; architecture</p>
@@ -144,7 +144,7 @@
   </section>
 
   <!-- 4 · One digest, one release (GCP / AWS tabs) -->
-  <section class="slide s-release" aria-label="4 of 13: One digest, one release">
+  <section class="slide s-release" aria-label="4 of 15: One digest, one release">
     <header>
       <p class="eyebrow reveal" style="--d:0">Stack &amp; architecture · the release</p>
       <h1 class="h-l reveal" style="--d:1; font-size:42px">One digest. One release.</h1>
@@ -242,7 +242,7 @@
   </section>
 
   <!-- 5 · CI/CD -->
-  <section class="slide s-pipeline" aria-label="5 of 13: CI/CD from dev to UAT to prod">
+  <section class="slide s-pipeline" aria-label="5 of 15: CI/CD from dev to UAT to prod">
     <header class="slide-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">CI/CD · dev → UAT → prod</p>
@@ -475,7 +475,7 @@
   </section>
 
   <!-- 6 · Scenario A -->
-  <section class="slide s-a" aria-label="6 of 13: Right config, wrong image">
+  <section class="slide s-a" aria-label="6 of 15: Right config, wrong image">
     <header class="slide-head">
       <div>
         <p class="eyebrow warn reveal" style="--d:0">Problem 1</p>
@@ -516,7 +516,7 @@
   </section>
 
   <!-- 7 · Scenario B -->
-  <section class="slide s-b" aria-label="7 of 13: The review queue">
+  <section class="slide s-b" aria-label="7 of 15: The review queue">
     <header>
       <p class="eyebrow warn reveal" style="--d:0">Problem 2</p>
       <h1 class="h-l reveal" style="--d:1">The review queue.</h1>
@@ -546,7 +546,7 @@
   </section>
 
   <!-- 8 · Review policy (Problem 2, in detail) -->
-  <section class="slide s-policy" aria-label="8 of 13: The review policy">
+  <section class="slide s-policy" aria-label="8 of 15: The review policy">
     <header class="slide-head">
       <div>
         <p class="eyebrow warn reveal" style="--d:0">Problem 2</p>
@@ -617,7 +617,7 @@
   </section>
 
   <!-- 9 · Live demo -->
-  <section class="slide s-demo" aria-label="9 of 13: Time for a live demo">
+  <section class="slide s-demo" aria-label="9 of 15: Time for a live demo">
     <div class="glow" aria-hidden="true"></div>
     <div class="ripples" aria-hidden="true"><i></i><i></i><i></i></div>
     <div class="countdown" aria-hidden="true"><span>3</span></div>
@@ -637,7 +637,7 @@
   </section>
 
   <!-- 10 · Appendix: bootstrap -->
-  <section class="slide s-appx s-boot appendix" aria-label="10 of 13: Bootstrap (appendix)">
+  <section class="slide s-appx s-boot appendix" aria-label="10 of 15: Bootstrap (appendix)">
     <header class="appx-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Appendix · setup</p>
@@ -656,7 +656,7 @@
   </section>
 
   <!-- 11 · Appendix: Terraform modules -->
-  <section class="slide s-appx s-modules appendix" aria-label="11 of 13: Terraform modules (appendix)">
+  <section class="slide s-appx s-modules appendix" aria-label="11 of 15: Terraform modules (appendix)">
     <header class="appx-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Appendix · infrastructure</p>
@@ -673,7 +673,7 @@
   </section>
 
   <!-- 12 · Appendix: Terragrunt -->
-  <section class="slide s-appx s-tg appendix" aria-label="12 of 13: Terragrunt environments (appendix)">
+  <section class="slide s-appx s-tg appendix" aria-label="12 of 15: Terragrunt environments (appendix)">
     <header class="appx-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Appendix · infrastructure</p>
@@ -715,8 +715,66 @@
     </div>
   </section>
 
-  <!-- 13 · Appendix: workflows -->
-  <section class="slide s-appx s-wf appendix" aria-label="13 of 13: GitHub Actions workflows (appendix)">
+  <!-- 13 · Appendix: databases -->
+  <section class="slide s-appx s-db appendix" aria-label="13 of 15: Databases (appendix)">
+    <header class="appx-head">
+      <div>
+        <p class="eyebrow reveal" style="--d:0">Appendix · data</p>
+        <h1 class="h-l reveal" style="--d:1">Databases: Postgres on Neon, a branch per environment.</h1>
+        <p class="lede reveal" style="--d:2">The API is the only thing that talks to the database. Web never connects directly.</p>
+      </div>
+    </header>
+    <div class="db-grid">
+      <section class="card db-neon reveal" style="--d:3">
+        <div class="col-head"><h2 class="pol-label acc">Hosted: Neon serverless Postgres</h2><span>free tier · scales to zero</span></div>
+        <div class="db-branch"><i></i><span class="mono">gcp-dev</span><small>auto deploys</small></div><div class="db-branch"><i></i><span class="mono">gcp-uat</span><small>promote</small></div><div class="db-branch"><i></i><span class="mono">gcp-prod</span><small>approval + canary</small></div><div class="db-branch off"><i></i><span class="mono">aws-uat</span><small>deferred</small></div><div class="db-branch off"><i></i><span class="mono">aws-prod</span><small>deferred</small></div>
+        <p>One <b>branch per environment</b>: isolated data, created in seconds, no Cloud SQL / RDS minimum cost.</p>
+        <div class="db-also"><h2 class="pol-label">Also Postgres 16</h2><p><b>Local:</b> Docker postgres:16-alpine on port 55432</p><p><b>CI:</b> a throwaway postgres:16-alpine service for the API e2e tests</p></div>
+      </section>
+      <div class="db-right">
+        <div class="db-row">
+          <section class="card ap-panel reveal" style="--d:4"><h2 class="pol-label blue">Schema (Drizzle ORM)</h2><div class="db-tables"><div class="db-table"><span class="mono">scenarios</span><small>tenant_id, persona, difficulty, rubric_id…</small></div><div class="db-table"><span class="mono">sessions</span><small>tenant_id, scenario, score, passed, rubric</small></div><div class="db-table"><span class="mono">messages</span><small>session, role, content</small></div><div class="db-table"><span class="mono">schema_migrations</span><small>which files have run</small></div></div><p class="note">Multi-tenant by a tenant_id column on every row; every query filters by it.</p></section>
+          <section class="card ap-panel reveal" style="--d:5"><h2 class="pol-label acc">Migrations: plain SQL, expand-only</h2><div class="db-mig"><span class="mono">0001_init</span><span>tables + indexes</span></div><div class="db-mig"><span class="mono">0002_seed_demo_tenants</span><span>3 organizations of demo data</span></div><div class="db-mig"><span class="mono">0003_scenario_details</span><span>difficulty, channel, skills (add columns)</span></div><div class="db-mig"><span class="mono">0004_scenario_rubrics</span><span>rubric per scenario (add column)</span></div><p class="note">Run on startup under <code>pg_advisory_lock</code>, one transaction each. Expand/contract keeps the previous release working, which canaries and rollbacks need.</p></section>
+        </div>
+        <div class="db-row">
+          <section class="card ap-panel  reveal" style="--d:6"><h2 class="pol-label">Connection</h2><p><b>DATABASE_URL</b> lives in Secret Manager (rehearse-&lt;env&gt;-database-url); the release references it by name</p><p><b>Direct URL, TLS on:</b> pooling off, because the migration lock needs one session</p><p><b>Pool:</b> 5 connections per instance, 15 s to connect while a sleeping branch wakes</p></section>
+          <section class="card ap-panel warn reveal" style="--d:7"><h2 class="pol-label">Lesson learned</h2><p><b>Neon suspends idle computes</b> after 5 minutes and drops every connection (57P01).</p><p><b>That crashed the API</b> until the pool handled it: ResilientPool logs it, replaces the connection, and retries a single statement once.</p><p><b>A test</b> now cuts every connection mid-run and checks the API keeps answering.</p></section>
+        </div>
+      </div>
+    </div>
+    <p class="appx-callout reveal" style="--d:8"><b>Why Neon:</b> it’s plain Postgres (where ReflexAI is heading), it costs nothing at this size, and branching makes a database per PR preview cheap later.</p>
+  </section>
+
+  <!-- 14 · Appendix: observability -->
+  <section class="slide s-appx s-obs appendix" aria-label="14 of 15: Observability (appendix)">
+    <header class="appx-head">
+      <div>
+        <p class="eyebrow reveal" style="--d:0">Appendix · observability</p>
+        <h1 class="h-l reveal" style="--d:1">Observability: SDK → Collector → Grafana.</h1>
+        <p class="lede reveal" style="--d:2">Both apps speak plain OTLP to a Collector next to them, so changing vendor means changing one exporter, not the apps.</p>
+      </div>
+      <div class="appx-tags reveal" style="--d:2"><i>Local: otel-lgtm on :3001</i></div>
+    </header>
+    <div class="card obs-flow">
+      <div class="obs-stack"><div class="obs-box reveal" style="--d:3"><b>web · Next.js</b><span>instrumentation.ts loads the SDK</span></div><div class="obs-box reveal" style="--d:3"><b>api · NestJS</b><span>main.ts loads it first</span></div></div>
+      <div class="obs-arrow reveal" style="--d:4"><span class="mono">NodeSDK<br>packages/telemetry</span><b>→</b></div>
+      <div class="obs-box plain reveal" style="--d:4"><b>OTLP / HTTP</b><span>localhost:4318<br>traces · metrics · logs</span></div>
+      <div class="obs-arrow short reveal" style="--d:5"><b>→</b></div>
+      <div class="obs-box coll reveal" style="--d:5"><b>Collector sidecar</b><span>Same Cloud Run service / ECS task as the app. Built once per release like the app images.</span><div class="procs"><i>memory_limiter</i><i>resourcedetection</i><i>transform/promote</i><i>batch</i></div></div>
+      <div class="obs-arrow reveal" style="--d:6"><span class="mono">otlphttp<br>basic auth</span><b>→</b></div>
+      <div class="obs-stack"><div class="obs-box graf reveal" style="--d:6"><b>Grafana Cloud</b><span>Tempo traces · Mimir metrics · Loki logs</span></div><div class="obs-box graf reveal" style="--d:7"><b>Dashboard + alert</b><span>rehearse-overview · API 5xx ratio</span></div></div>
+    </div>
+    <div class="ap-grid4">
+      <section class="card ap-panel  reveal" style="--d:8"><h2 class="pol-label">How it’s configured</h2><p><b>Same labels everywhere:</b> service.name, service.version (git SHA), deployment.environment.name, cloud.provider</p><p><b>Auto-instrumented:</b> HTTP in and out, NestJS, Postgres, pino; fs / dns / net turned off as noise</p><p><b>Off in unit tests:</b> OTEL_SDK_DISABLED=true</p></section>
+      <section class="card ap-panel  reveal" style="--d:9"><h2 class="pol-label">How it’s deployed</h2><p><b>Sidecar in the release spec:</b> the Collector ships in the same revision as the app, pinned by digest</p><p><b>Credentials:</b> OTLP endpoint + instance ID from config; the token from Secret Manager</p><p><b>Cloud metadata:</b> added by the Collector (Cloud Run or ECS)</p></section>
+      <section class="card ap-panel  reveal" style="--d:10"><h2 class="pol-label">What’s sent</h2><p><b>Traces:</b> every request, with the database queries inside it</p><p><b>Metrics:</b> http.server.request.duration, rehearse.sessions.started / completed, rehearse.session.score</p><p><b>Logs:</b> pino JSON logs, each with its trace ID</p></section>
+      <section class="card ap-panel graf reveal" style="--d:11"><h2 class="pol-label">What’s shown</h2><p><b>Dashboard:</b> web and API requests/s, 5xx ratio, p95 latency, by status and route, web→API calls, sessions by rubric, running versions, error logs</p><p><b>Alert:</b> API 5xx above 2% for 1 minute</p><p><b>Markers:</b> every deploy and demo step</p></section>
+    </div>
+    <p class="appx-callout reveal" style="--d:12"><b>In Scenario A</b> this is what noticed first: the 5xx ratio jumped, the alert fired about two minutes in, and the purple demo marker shows exactly which change caused it.</p>
+  </section>
+
+  <!-- 15 · Appendix: workflows -->
+  <section class="slide s-appx s-wf appendix" aria-label="15 of 15: GitHub Actions workflows (appendix)">
     <header class="appx-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Appendix · automation</p>
