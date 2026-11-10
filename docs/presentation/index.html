@@ -9,7 +9,7 @@
 <body>
 <!--
   Interview summary, shown before the live demo. Open this file directly in a browser
-  (no build step, no network needed). Keys: ← → / space / PageUp / PageDown, 1-6 to jump,
+  (no build step, no network needed). Keys: ← → / space / PageUp / PageDown, 1-7 to jump,
   A to approve prod on slide 3 (click a stage for details; ↑ ↓ switch, Esc closes), F for full screen. Links for the last slide: links.js
   (copy links.example.js; links.js is git-ignored).
 -->
@@ -20,10 +20,10 @@
     <span class="brand-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
     <span class="brand-name">RehearseAI</span>
   </div>
-  <div class="chrome-top" id="counter" aria-live="polite">01 / 06</div>
+  <div class="chrome-top" id="counter" aria-live="polite">01 / 07</div>
 
   <!-- 1 · Goal -->
-  <section class="slide s-goal is-active" aria-label="1 of 6: Goal">
+  <section class="slide s-goal is-active" aria-label="1 of 7: Goal">
     <div class="orbit" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b><b></b></div>
     <div class="content">
       <p class="eyebrow reveal" style="--d:0">ReflexAI · Senior Platform Engineer · technical deep dive</p>
@@ -38,7 +38,7 @@
   </section>
 
   <!-- 2 · Stack & architecture -->
-  <section class="slide s-stack" aria-label="2 of 6: Stack and architecture">
+  <section class="slide s-stack" aria-label="2 of 7: Stack and architecture">
     <header class="slide-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Stack &amp; architecture</p>
@@ -81,7 +81,7 @@
   </section>
 
   <!-- 3 · CI/CD -->
-  <section class="slide s-pipeline" aria-label="3 of 6: CI/CD from dev to UAT to prod">
+  <section class="slide s-pipeline" aria-label="3 of 7: CI/CD from dev to UAT to prod">
     <header class="slide-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">CI/CD · dev → UAT → prod</p>
@@ -314,7 +314,7 @@
   </section>
 
   <!-- 4 · Scenario A -->
-  <section class="slide s-a" aria-label="4 of 6: Right config, wrong image">
+  <section class="slide s-a" aria-label="4 of 7: Right config, wrong image">
     <header class="slide-head">
       <div>
         <p class="eyebrow warn reveal" style="--d:0">Problem 1</p>
@@ -355,7 +355,7 @@
   </section>
 
   <!-- 5 · Scenario B -->
-  <section class="slide s-b" aria-label="5 of 6: The review queue">
+  <section class="slide s-b" aria-label="5 of 7: The review queue">
     <header>
       <p class="eyebrow warn reveal" style="--d:0">Problem 2</p>
       <h1 class="h-l reveal" style="--d:1">The review queue.</h1>
@@ -384,8 +384,79 @@
     </div>
   </section>
 
-  <!-- 6 · Live demo -->
-  <section class="slide s-demo" aria-label="6 of 6: Time for a live demo">
+  <!-- 6 · Review policy (Problem 2, in detail) -->
+  <section class="slide s-policy" aria-label="6 of 7: The review policy">
+    <header class="slide-head">
+      <div>
+        <p class="eyebrow warn reveal" style="--d:0">Problem 2</p>
+        <h1 class="h-l reveal" style="--d:1; font-size:46px">The review policy: the diff decides the risk.</h1>
+        <p class="lede reveal" style="--d:2; margin-top:10px; font-size:16px">One workflow reads every PR, assigns its risk level and enforces who must review it. No person picks it.</p>
+      </div>
+      <p class="pol-files mono reveal" style="--d:2">.github/workflows/review-policy.yml<br>scripts/review-policy/classify.mjs</p>
+    </header>
+
+    <div class="pol-grid">
+      <div class="pol-col">
+        <section class="pol-card reveal" style="--d:3" aria-labelledby="pol-when">
+          <h2 class="pol-label" id="pol-when">When it runs</h2>
+          <ul class="pol-trig">
+            <li><span class="mono">opened · reopened · ready</span>A new PR gets its first verdict</li>
+            <li><span class="mono">synchronize</span>Every push re-classifies it</li>
+            <li><span class="mono">labeled · unlabeled</span>Hand-edited risk labels are fixed</li>
+            <li><span class="mono">review submitted · dismissed</span>Are the approvals enough yet?</li>
+            <li><span class="mono">workflow_dispatch</span>On demand (used by the demo)</li>
+          </ul>
+        </section>
+        <section class="pol-card grow reveal" style="--d:4" aria-labelledby="pol-reads">
+          <h2 class="pol-label" id="pol-reads">What it reads</h2>
+          <ul class="pol-dots">
+            <li><b>Changed file paths</b><span>from the diff</span></li>
+            <li><b>package.json before &amp; after</b><span>works out each version bump</span></li>
+            <li><b>Author, branch, labels</b><span>Is it a bot? Is it an agent?</span></li>
+            <li><b>Reviews + CODEOWNERS</b><span>owners read from main, not the PR</span></li>
+          </ul>
+        </section>
+      </div>
+
+      <section class="pol-card pol-map reveal" style="--d:5" aria-labelledby="pol-map">
+        <div class="pol-map-head"><h2 class="pol-label" id="pol-map">Risk mapping</h2><span>checked top to bottom · first match wins</span></div>
+        <div class="pol-row pol-row-head" aria-hidden="true"><span>#</span><span>If the PR…</span><span>Risk</span><span>Who must approve</span></div>
+        <ol class="pol-rows">
+          <li class="pol-row reveal" style="--d:6"><span class="n">1</span><div><b>Touches a platform path</b><span>infra, deploy specs, workflows, migrations, config schema, Dockerfiles, the policy itself</span></div><span class="risk high">risk:high</span><span class="who">A code owner</span></li>
+          <li class="pol-row reveal" style="--d:7"><span class="n">2</span><div><b>Docs only</b><span>Markdown files or docs/</span></div><span class="risk low">risk:low</span><span class="who">Nobody: auto-merges on green CI</span></li>
+          <li class="pol-row reveal" style="--d:8"><span class="n">3</span><div><b>Dependencies only: any major bump</b><span>e.g. eslint 9 → 10</span></div><span class="risk high">risk:high</span><span class="who">A code owner</span></li>
+          <li class="pol-row reveal" style="--d:9"><span class="n">4</span><div><b>Dependencies only: small bumps</b><span>dev tools patch/minor, runtime patch, or lockfile only</span></div><span class="risk low">risk:low</span><span class="who">Nobody: auto-merges on green CI</span></li>
+          <li class="pol-row reveal" style="--d:10"><span class="n">5</span><div><b>Dependencies only: anything else</b><span>runtime minor, or package.json changes beyond versions</span></div><span class="risk med">risk:medium</span><span class="who">1 human who isn’t the author</span></li>
+          <li class="pol-row reveal" style="--d:11"><span class="n">6</span><div><b>Everything else</b><span>application code, including agent-written fixes</span></div><span class="risk med">risk:medium</span><span class="who">1 human who isn’t the author</span></li>
+        </ol>
+        <p class="pol-mixed reveal" style="--d:12"><b>Mixed PRs fall through the list:</b> docs + app code lands on rule 6 (medium); anything + an infra file stops at rule 1 (high). The strictest match always wins.</p>
+      </section>
+
+      <section class="pol-card reveal" style="--d:6" aria-labelledby="pol-does">
+        <h2 class="pol-label" id="pol-does">What it does</h2>
+        <ol class="pol-steps">
+          <li><span class="num">1</span><div><b>Label</b><span>exactly one risk:… label, plus agent</span></div></li>
+          <li><span class="num">2</span><div><b>review-policy status</b><span>a required check: pending until the review rule is met</span></div></li>
+          <li><span class="num">3</span><div><b>Auto-merge</b><span>on for low risk; switched off if a push raises the risk</span></div></li>
+          <li><span class="num">4</span><div><b>A reason</b><span>e.g. “touches platform paths: infra/gcp-uat”</span></div></li>
+        </ol>
+        <div class="pol-onpr">
+          <span class="pol-label">On the PR</span>
+          <span class="pol-status"><i aria-hidden="true"></i><b>review-policy</b><span>high risk: waiting for a code owner</span></span>
+        </div>
+      </section>
+    </div>
+
+    <div class="pol-guards reveal" style="--d:13">
+      <div style="--g:0"><b>Labels are output, not input</b><span>Hand-added risk:low is removed.</span></div>
+      <div style="--g:1"><b>Rules run from main</b><span>A PR can’t edit its own judge.</span></div>
+      <div style="--g:2"><b>The rules are high risk</b><span>Editing them needs a code owner.</span></div>
+      <div style="--g:3"><b>Bots never count</b><span>Nor does the author’s own approval.</span></div>
+    </div>
+  </section>
+
+  <!-- 7 · Live demo -->
+  <section class="slide s-demo" aria-label="7 of 7: Time for a live demo">
     <div class="glow" aria-hidden="true"></div>
     <div class="ripples" aria-hidden="true"><i></i><i></i><i></i></div>
     <div class="countdown" aria-hidden="true"><span>3</span></div>
