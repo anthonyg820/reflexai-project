@@ -731,3 +731,349 @@ Update the 'prompts.md' file to include all of your responses
 **Claude:**
 
 Done. Every entry in `docs/prompts.md` now has my reply under it, marked **Claude:**. Where a turn included progress messages before the final reply, those are included too, labelled. Long replies are kept in full in substance but lightly condensed where they repeated tables or file lists. From now on each new entry will include my reply as well (`CLAUDE.md` updated with that rule).
+
+---
+
+### 34. Mon 2026-11-09 19:11
+
+The dashboard has been imported into grafana cloud and I can see the data successfully. Let's work on rehearsing the scenarios. Remember there are two scenarios we must cover based on ReflexAI's provided document (attached to this project).
+
+1) Right config, wrong image
+
+A release added a new configuration value. That service's release workflow ran the Terraform apply before it built and deployed the new image. Cloud Run made a new revision with the new configuration and the old image. The old code could not handle the new configuration, and every tenant got server errors for about 9 minutes, until the new image arrived. A person noticed first. The same job also builds the image again for each environment, so the image in production is not the one that was tested. 
+
+2) The review queue
+
+Engineers open more pull requests than a year ago, because agents write much of the code. The AI reviewer catches some problems, but human review is the slowest step in delivery. Engineers switch context often and feel that review quality drops. Our compliance obligations expect a second person to approve production changes. Some of the changes in the queue are agent-written fixes and dependency updates. 
+
+---
+
+Briefly summarize your proposed solution for each scenario, and ensure that whatever process we use to 'demonstrate' these problems/solutions is easily reproducible and repeatable on-demand
+
+**Claude:**
+
+The fix for each scenario is below, followed by what the demos can and can't do today. Scenario A can already be run on demand but has three gaps. Scenario B has no demo yet, only talking points.
+
+## 1) Right config, wrong image
+
+**The fix: one release is one unit, and nothing is rebuilt between environments.**
+- **Build once:** each merge builds every image once. Every environment deploys that same image by its digest, so prod runs the bytes that were tested. Promote reads the version from the stage before and refuses to continue if the digests don't match.
+- **Image and config ship together:** the image, its runtime config and the revision settings go out as one revision through `render-release.mjs`. Terraform only manages the service's shell (identity, IAM, secrets) and ignores the revision, so it can no longer put out new config with the old image.
+- **Bad config fails before users see it:** a config value the code doesn't know is rejected in CI, when the release is built, and when the service starts. If it does start, the startup probe fails and Cloud Run keeps traffic on the old revision.
+- **Find problems before a person does:** a 10% canary goes out first, there's an alert on the 5xx error rate, and deploys are marked on the dashboard.
+
+**The demo today:**
+- `make scenario-a` shows it locally in about 10 seconds.
+- On gcp-dev, the **Demo: Scenario A** workflow has three modes:
+  - `legacy-order` causes the real outage.
+  - `guarded` makes the same change with startup validation, and users see no errors.
+  - `recover` puts dev back.
+
+**What makes it unreliable to repeat:**
+- **State carries over:** a run starts from whatever the previous run left behind. If you skip `recover`, the next run starts from a broken service.
+- **No alert yet:** the 5xx alert is written up in `deploy/grafana/alerts.md` but doesn't exist in Grafana Cloud. So "a person noticed first" is still true in the demo.
+- **The rebuild-per-environment half isn't shown:** you'd have to tell it rather than show it.
+
+## 2) The review queue
+
+**The fix: humans review less, and only where it matters. The compliance approval moves to the release.**
+- **Sort changes by risk:**
+  - **Low-risk dependency updates** (patches and dev tooling) merge themselves once checks pass.
+  - **Agent-written fixes and app code** get the AI reviewer and any one human.
+  - **Risky changes** need a platform code owner: infra, deploy specs, migrations, auth.
+- **Checks you can trust:** required checks must be reliable (flaky tests quarantined, only affected code tested), so a human reviews intent, not mechanics.
+- **The second person approves the release:** one person approves the specific build going to production, using the production environment approval. That meets the compliance rule without a human reviewing every bot PR, and a GitHub deployment records who approved it.
+- **Smaller batches, less context switching:** Renovate runs weekly with a concurrency limit, and related packages (like OpenTelemetry) are grouped into one PR.
+
+**The demo today:** there's no demo. The Renovate config and CODEOWNERS exist, but nothing shows them working.
+
+## What I'd build so both demos can be re-run on demand
+
+1. **Scenario A reset and timeline:**
+   - Every run starts by putting dev back on the last real release, so runs don't depend on each other. `recover` stays available.
+   - The job summary records the time of each step and the error count.
+   - Add a `rebuild-drift` step that rebuilds the image and shows the digest comes out different. That proves why "rebuild per environment" means prod isn't what was tested.
+2. **Grafana alert as code:** a 5xx alert rule and a deploy annotation, pushed into Grafana Cloud by the dashboard launcher, so the alert fires before a person notices.
+3. **Demo: Scenario B workflow:**
+   - It opens three example PRs from disposable branches: a dependency patch, an agent-style app fix and an infra change.
+   - A new PR check labels each one by risk.
+   - The low-risk PR merges itself when checks pass, and the infra PR waits for a code owner.
+   - `mode=cleanup` closes the PRs and deletes the branches, so you can run it again.
+   - To finish, run Promote to prod and show the approval being recorded.
+4. **A repo rules launcher** (`7-repo-rules.cmd`). It sets up branch protection for `main`: required checks, code-owner review on risky paths, and auto-merge turned on. My GitHub access can't change repo settings, so this needs your sign-in.
+5. **Update `docs/DEMO.md`** to a step-by-step script for both scenarios, each with a reset step.
+
+One honest caveat for Scenario B: you're the only person on this repo, so GitHub lets you approve your own production deploys. In the interview, say that in a real setup "Prevent self-review" would be turned on for the production environment.
+
+Should I go ahead and build this? It opens and closes example PRs on your public repo, and step 4 changes branch protection on `main`.
+
+---
+
+### 35. Mon 2026-11-09 19:21
+
+Great suggestions. Yes, go ahead and build them.
+
+**Claude:**
+
+Everything is built and in **PR #2**, and all CI checks pass. Nothing has run against the cloud yet, because GitHub only lets you start a workflow once it's on `main`. After you merge and run the two launchers below, I can start each demo and watch it.
+
+**Scenario A** (`Demo: Scenario A`):
+- **Self-resetting:** each run first puts gcp-dev back on the last real release, so runs are independent and repeatable.
+- **`legacy-order`:** writes a timeline to the job summary, from the config push to the moment traffic moves to the first user error. It keeps traffic flowing for 4 minutes so the alert fires, then recovers through the normal release path. That's about 9 minutes end to end, the same length as their outage.
+- **`guarded`:** sends the same traffic while the bad revision fails its startup probe, and shows 100% of traffic staying on the old revision.
+- **`rebuild-drift` (new):** rebuilds the deployed commit to show the digest changes. It also shows that dev, UAT and prod all run one digest.
+- **Alert as code:** "Rehearse API 5xx ratio" (over 2% for 1 minute) is in `deploy/grafana/alerting/`, and the step 6 launcher loads it into Grafana Cloud.
+
+**Scenario B** (`Demo: Scenario B`):
+- **Review policy:** a unit-tested policy (`scripts/review-policy/`) labels each PR low, medium or high risk and posts a required `review-policy` check. It auto-merges low risk. Bot approvals never count.
+- **CODEOWNERS:** now covers only platform paths.
+- **`mode=open`:** opens three PRs against a throwaway copy of `main`:
+  - A real npm dependency update. It merges itself once CI passes.
+  - An agent-written bug fix. It waits for one human; approve it and the check turns green.
+  - An infra change. It waits for a code owner.
+- **`mode=cleanup`:** closes the PRs and deletes the demo branches. `main` is never touched.
+
+`docs/DEMO.md` is now a step-by-step script with timings and a 5-minute pre-interview reset.
+
+**Your steps:**
+1. **Merge PR #2.** That also triggers a normal Release to gcp-dev.
+2. **Run `bootstrap\7-repo-rules.cmd`.** It sets up the branch rules and auto-merge, and allows Actions to open PRs.
+3. **Re-run `bootstrap\6-grafana-dashboard.cmd`.** Use an **Admin** token, which loading the alert needs. When asked, paste a separate **Editor** token so deploys and demos draw markers on the dashboard.
+4. **`git pull`.** Your folder only has the prompt log as a local change, and the PR doesn't touch it.
+
+**Before you run step 2:**
+- **Merging PRs:** after step 2, your own PRs into `main` need the `review-policy` check. As repo admin you can still push straight to `main`, or merge with the "bypass rules" option.
+- **Production approval:** you can still approve your own production deploys, since you're the only reviewer. The runbook tells you to say that a real team would turn on "Prevent self-review".
+
+---
+
+### 36. Mon 2026-11-09 20:09
+
+I want to enhance the web application a bit. 
+
+- improve the look and feel. Create some mockups for me before making any changes
+- add more scenarios, tenants, and rubric types. Or perhaps utilize an LLM for realtime conversational feedback and scoring rather than static rubrics. How much would this cost approximately? And how doable is it with how much progress we’ve made so far and given how much time we have left?
+
+**Claude:**
+
+The mockups are on a design canvas with four screens: **Dashboard**, **Scenario library**, **Practice session with a live coach panel**, and **Session scorecard**. I haven't changed any code.
+
+**Design direction:**
+- **Look:** I kept the green accent and dropped the cream background and serif fonts for a cooler, cleaner style: Space Grotesk headings, Inter body text, and a sidebar with the organization switcher.
+- **Accent color:** each screen has an accent-color tweak so you can try other options.
+- **Sample data:** the data is made up. The mockups also preview the content expansion: a third tenant (Harbor Bank), difficulty levels, a skill tag on each scenario, and new rubrics (Crisis protocol, Service recovery, Clear explanation).
+- **Live coach panel and per-criterion scorecard:** these work with either scoring approach. With today's rules, the bars come from keyword checks. With an LLM, they come from the model's feedback.
+
+## LLM scoring: cost
+
+Haiku 5.5 is the right model for this. Third-party pages list it at $0.10 per million input tokens and $0.50 per million output tokens for prompts under 100K tokens; ours are far smaller. Sonnet 5.5 is listed at $2 and $10. I couldn't open Anthropic's own pricing page, so treat these as approximate.
+
+A session of about 8 replies would make three kinds of model calls: the persona's replies, coaching after each reply, and a final score. That comes to roughly 40K input tokens and 2.5K output tokens per session.
+
+| | Per session | 100 sessions (all rehearsals plus the interview) |
+|---|---|---|
+| Haiku 5.5 | about $0.005 | about $0.50 |
+| Sonnet 5.5 | about $0.11 | about $11 |
+
+Two caveats:
+- **Credits:** the API needs a small prepaid credit, probably $5, which would easily cover this.
+- **Abuse risk:** the Cloud Run URLs are public, so the app needs a daily cap per tenant to prevent abuse. CI and smoke tests would use a fake model and never call the API.
+
+## Is it doable by Wednesday?
+
+| Work | Estimate | Risk |
+|---|---|---|
+| UI refresh (these 4 screens in the real pages) | 3–4 h | Low |
+| More scenarios, tenants and rubrics (seed migration, config schema, tests) | 1.5–2 h | Low |
+| LLM persona, coach and scoring, behind a config switch with the rules as fallback | 5–7 h | Medium |
+
+The LLM work includes a provider setting in the config schema, an API key in Secret Manager via the secrets launcher, timeouts and fallback, and telemetry on tokens and latency.
+
+**My recommendation:** do the UI refresh and new content Tuesday morning. Then time-box the LLM work to Tuesday afternoon, behind a config switch (`SCORING_PROVIDER=rules|llm`) and on Haiku. If it isn't solid by about 6 pm, ship it switched off in prod. It also helps the interview: a new config value plus an external dependency is exactly the kind of change the Scenario A guardrails are for.
+
+One thing comes first, though: the two demos haven't run in the cloud yet. Do these before Tuesday's work:
+1. Run `git pull`; your folder is still on the commit before PR #2.
+2. Run `bootstrap\7-repo-rules.cmd`.
+3. Re-run `bootstrap\6-grafana-dashboard.cmd` with an Admin token.
+
+Tell me which parts you want, plus any changes to the mockups, and I'll start.
+
+Sources:
+- [Claude Haiku 5.5 price table (braindetox.kr)](https://braindetox.kr/en/posts/claude_haiku_5_5_release_pricing_2026.html)
+- [Claude Haiku 5.5 launches with $0.10 input pricing (techenclave)](https://techenclave.com/news/items/claude-haiku-5-5-launches-with-0-10-input-pricing-for-shorter-prompts)
+
+---
+
+### 37. Mon 2026-11-09 20:18
+
+The mockups are perfect. The only additional I'd like to see is a dark mode toggle somewhere in the sidebar navigation. Let's ignore the LLM integration for now. And we'll also come back to the demo later. For now, please update the UI according to your mockups and my dark mode request
+
+---
+
+### 38. Mon 2026-11-09 20:20
+
+Also update the name of the web application title in the sidebar navigation from 'Rehearse' to 'RehearseAI'
+
+*(Sent while Claude was working on #37; answered together with it below.)*
+
+**Claude:**
+
+The new UI is in **PR #3** and every CI check passed. It follows the mockups, adds a dark mode switch at the bottom of the sidebar, and the sidebar title now reads **RehearseAI** (so does the browser tab). The screenshots `dashboard-light.png` and `session-dark.png` show it running locally.
+
+**What changed:**
+- **Dark mode:** the switch remembers your choice. Until you use it, the app follows your computer's light or dark setting. Both themes have their own colors, chosen to stay readable.
+- **Dashboard:** pass rate, weakest skill, difficulty and a pass-rate bar per scenario, and recent sessions with persona avatars.
+- **Scenario library:** search, a difficulty filter, skill tags and an estimated length. The scenario detail page and the "New scenario" form match.
+- **Practice session:** the chat plus a live coach panel that updates after every reply. Ending a session shows the scorecard: score ring, notes per criterion, key moments and recent attempts.
+- **Sessions page:** the sidebar now links to a list of recent sessions.
+
+**Where the mockups needed changes:**
+- **Coaching:** the coaching is rules-based, since we parked the LLM. It checks the trainee's replies for empathy phrases, open questions, reflections and pacing. The official score and pass/fail still come from the environment's rubric, so the Scenario A demo is unaffected.
+- **More content:** a database change adds the scenario details, three more Acme scenarios, and a Harbor Bank tenant with two scenarios. It only adds columns with defaults, so the previous release keeps working while it rolls out.
+- **No user names:** the app has no user accounts, so the mockup's greeting and trainee names became persona names. I left out the Rubrics menu item because there's no rubrics page yet.
+
+**Checked:** lint, typecheck and all tests, including the API end-to-end tests against Postgres. I also took screenshots in light, dark and at phone width; there was no sideways scrolling and no console errors.
+
+The new review policy also ran on this PR, since its workflow is now on `main`. It labelled the PR `risk:high` because it includes a database migration. That only becomes a merge blocker after you run `7-repo-rules.cmd`, and as admin you could still bypass it. Merging PR #3 deploys it to gcp-dev automatically; promote it when you're happy with it. When you `git pull`, your local `docs/prompts.md` only has new entries at the end, so it should merge cleanly.
+
+---
+
+### 39. Mon 2026-11-09 20:37
+
+Create the rubrics page
+
+**Claude:**
+
+The Rubrics page is in **PR #4** and all CI checks passed. It's linked from the sidebar, and `rubrics-light.png` shows it running locally.
+
+**What's on the page:**
+- **One card per rubric** (Empathy basics, Active listening): a short description, a table of how it scores (starting score, points per behaviour, passing score), and a badge on the one this environment uses. Each card also shows this organization's sessions scored with that rubric, the average score and the pass rate.
+- **Coaching criteria:** the four skills the live coach and scorecard rate (empathy, open questions, reflective listening, pacing), with a note that they don't change the rubric score.
+- **Try it:** type sample replies, one per line, and every rubric's score and pass/fail updates as you type, along with the coaching bars. Nothing is saved.
+
+**Behind it:**
+- **API:** two new endpoints, `GET /api/rubrics` and `POST /api/rubrics/preview`.
+- **Descriptions:** the rubric descriptions sit next to the scoring code, and a test fails if a rubric has no description.
+
+**Scenario A:** this page never crashes on a rubric the release doesn't know. I ran the API locally with `rubric-c` and lazy validation: the dashboard API returned 500 while the Rubrics page loaded and named `rubric-c` as unknown. I added it to `docs/DEMO.md` as step 3 of the legacy-order demo, so you can show the exact mismatch live.
+
+**Checked:** lint, typecheck and all tests (API end-to-end included). I also took screenshots in light, dark and at phone width; there was no console error and no sideways scrolling.
+
+---
+
+### 40. Mon 2026-11-09 20:58
+
+Make rubrics associated to a scenario, rather than an environment. For example, a user should be able to create a new scenario that uses a specific rubric as a target. This way, we could have rubrics for 'Empathy', 'Optimism', 'Sales Persistence', etc, all with their own unique scoring parameters. Also add in some more rubrics and at least 5 scenarios per organization.
+
+**Claude:**
+
+Rubrics now belong to scenarios. This is in **PR #5**, and all CI checks pass. The screenshots `scenarios-with-rubrics.png` and `new-scenario-rubric.png` show it running locally.
+
+**How it works now:**
+- **Choosing a rubric:** the "New scenario" form has a rubric picker, so a scenario can target Empathy, Optimism, Sales persistence and so on. Sessions are scored and passed or failed with their own scenario's rubric.
+- **Unique scoring:** each rubric is defined as data (a starting score, a passing score, and behaviours worth points). For example, Sales persistence rewards discovery questions, value points, handled objections and asking for a next step. It deducts points for one-word replies. A single scoring engine handles every rubric, so adding one is mostly a data change.
+- **Environment default:** `SCORING_RUBRIC` is kept as the environment's default, used when a scenario doesn't pick a rubric. The dashboard still requires that default to be a rubric the release knows, so the Scenario A demo (unknown `rubric-c`) still breaks the dashboard for every tenant, as before.
+
+**8 rubrics:**
+
+| Rubric | Rewards | Penalizes | Pass at |
+|---|---|---|---|
+| Empathy basics | Naming feelings | n/a | 70 |
+| Active listening | Questions, reflections | One-word replies | 75 |
+| Optimism | Hopeful, forward-looking phrases | Defeatist replies | 70 |
+| Sales persistence | Discovery, value, objection handling, next steps | Short replies | 70 |
+| De-escalation | Calming, collaborative phrases | "Calm down", "policy", blame | 70 |
+| Clear explanation | Checking understanding | Jargon, walls of text | 70 |
+| Service recovery | Apology, ownership, concrete commitments | Deflecting | 70 |
+| Crisis safety | Direct safety questions, building a plan | Minimizing | 75 |
+
+Empathy basics and Active listening score exactly as before. Each rubric has a test with a reply set that passes and one that fails.
+
+**Five scenarios per organization:**
+- **Acme Crisis Line:** unchanged.
+- **Northwind Health:** adds "Discouraged after surgery" (Optimism), "Anxious parent in the waiting room" (De-escalation) and "Explaining a new diagnosis" (Clear explanation).
+- **Harbor Bank:** adds "Customer closing their account" and "Small business owner exploring credit" (both Sales persistence) and "First-time homebuyer overwhelmed" (Clear explanation).
+- **Existing scenarios:** each also got a fitting rubric, e.g. the frustrated caller now uses De-escalation.
+
+**Elsewhere in the app:**
+- **Scenario library:** has a rubric filter, and each card links to its rubric.
+- **Scenario detail page:** shows which rubric the scenario uses.
+- **Rubrics page:** lists the scenarios using each rubric and marks the environment default.
+- **Dashboard and sessions list:** show pass/fail by each session's own rubric.
+
+**Checked:** lint, typecheck and all tests. I also created a scenario with the Sales persistence rubric through the form and checked it everywhere it shows up. For Scenario B, I regenerated the agent-fix demo patch for the new scoring engine; CI confirms it still applies.
+
+**Worth knowing before you merge:** sessions that were already scored keep their score and rubric. Only new sessions use each scenario's rubric.
+
+---
+
+### 41. Mon 2026-11-09 21:09
+
+Now I want to focus on presenting a summary of the project to the interviewers. This summary will be presented to the interviewers before the live demo. I want this summary to be interactive, highly-animated, local HTML/CSS files, separate from our rehearse web application. Since this is only for demo purposes, we do not need it part of the workflow promotion. The summary web page should include:
+
+- The goal of the project
+- The High-level tech stack and architecture
+- The CI/CD process (DEV to UAT to PROD)
+- Both problems (Right config, wrong image AND The review queue ) and how we decided to approach and resolve them.
+- At the end of the summary should be a highly-stylized and animated 'Time for a live demo' type of announcement.
+
+Create mockups of this HTML page for me before developing any code.
+
+**Claude:**
+
+The mockups are on a new design canvas, **RehearseAI interview summary**. I haven't written any code yet.
+
+It's a full-screen, six-slide presentation. Each slide is shown as a still frame at its finished state:
+
+1. **Goal:** "A pipeline you can trust, rehearsed end to end", with three cards: mirror their stack, reproduce both problems on demand, fix them in the pipeline.
+2. **Stack & architecture:** three columns (Build & deliver → Run → Data & signals). It covers GitHub Actions, Terraform/Terragrunt, Cloud Run web + api with OTel sidecars, ECS (built, not deployed), Neon, Grafana Cloud and Secret Manager.
+3. **CI/CD:** CI → build once → gcp-dev → gcp-uat → second-person approval → gcp-prod canary, following a single image digest. Below it: no skipped stages, smoke test before traffic, one-click rollback.
+4. **Right config, wrong image:** "What happened" (the 9-minute outage, step by step) next to "What we changed" (the five fixes), plus a Before / Side by side / After switch.
+5. **The review queue:** incoming PRs (bot, agent, engineer) sorted into no human / one human / code owner. A banner explains that the compliance second person approves the production release instead of every bot PR.
+6. **Time for a live demo:** a large stylized title over concentric rings, a "Live · gcp-dev · Grafana Cloud" marker, the four demo beats and a "Start the demo" button.
+
+**Look:** dark, cinematic and on-brand with RehearseAI: the same teal accent, Space Grotesk and Inter. Amber marks the problems, and a monospace font marks technical labels. There's an accent-colour switch if you want to try blue or violet.
+
+**Animation and interaction** (a note on the canvas lists it all, since still frames can't show motion):
+- Each slide's lines fade up one after another.
+- On the architecture slide, data dots flow along the arrows.
+- An image "capsule" carrying its sha256 travels dev → UAT → prod. The approval gate pulses until you press **A**, then the canary fills from 10% to 100%.
+- The Scenario A "Before" view replays the outage on a clock while 500s rain down. "After" shows the bad revision bouncing off the startup check.
+- PR cards stream in and sort themselves into their lanes.
+- The finale counts down 3-2-1, assembles the title letter by letter and ripples the rings.
+- Navigation: arrow keys, space or number keys, plus a progress bar. It respects reduced-motion settings.
+
+**How I'd build it:** plain HTML, CSS and a little JavaScript in `docs/presentation/`. You'd open `index.html` with a double-click; there's no build step, and fonts are bundled so it works offline. The release workflow already ignores `docs/`, so it never touches the pipeline.
+
+Tell me what to change, or say go and I'll build it.
+
+---
+
+### 42. Mon 2026-11-09 21:14
+
+I like it. Build it
+
+**Claude:**
+
+The presentation is built and in **PR #6**. Two frames from it are in `slide-3-pipeline.png` (after pressing A) and `slide-6-live-demo.png`.
+
+**What you get:** six full-screen slides that match the mockups, with the animations described on the canvas:
+- **Goal:** lines fade in over slowly orbiting rings.
+- **Stack:** the architecture cards build in and data dots flow between the columns; traces, metrics and logs pulse in turn.
+- **CI/CD:** an image capsule labelled `sha256:7c1e` moves stage by stage and stops at the approval gate, which pulses until you press **A**. The canary bar then fills 10% → 100%. **Replay** restarts it.
+- **Right config, wrong image:** a clock replays the 9-minute outage in 9 seconds while 500s rain down. The "After" view shows `rubric-c` bouncing off the startup check as the four guardrails light up. Before / Side by side / After switch the view.
+- **Review queue:** the six PRs leave the queue one by one and land in their lanes ("merged automatically", "waiting for 1 review", "waiting for code owner"). It ends with "Queue sorted. Humans only see 4 of 6."
+- **Finale:** a 3-2-1 countdown, the title dropping in letter by letter, ripples and a glowing **Start the demo** button. Next to it are links to GitHub Actions and Grafana.
+
+**How to use it:**
+- **Open:** double-click `docs/presentation/index.html`, then press **F** for full screen. Move with the arrow keys, space or 1–6.
+- **Any screen:** it scales to fit any screen or projector and works offline, since the fonts are bundled.
+- **Reduced motion:** it respects your computer's reduced-motion setting.
+- **Not deployed:** it lives under `docs/`, which the Release workflow ignores, so it isn't part of any promotion.
+- **Instructions:** a short README explains the controls. `docs/DEMO.md` now opens with it.
+
+**Your Grafana link:** I created `docs/presentation/links.js` in your folder, using the Grafana URL from your `bootstrap/settings.env`, so the Grafana button opens your dashboard. That file is git-ignored, so your stack URL stays out of the public repo.
+
+**Checked:** I clicked through every slide in Chromium, including approve, the view switch and the queue sorting. There were no errors, and I fixed a few layout issues I found along the way.
+
+Merge PR #6 and run `git pull`; then you can open it straight away.
