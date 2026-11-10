@@ -1,6 +1,6 @@
 # Interview summary presentation
 
-Nine animated slides shown before the live demo, plus an optional three-slide appendix after it (Terraform modules, Terragrunt environments, GitHub Actions workflows; reach it with `→` past the demo slide, `End`, or the A1–A3 buttons): the goal, what the RehearseAI app does (with a dashboard screenshot and how scoring works), the stack and architecture, one digest / one release (with GCP and AWS example files), the CI/CD flow, both problems and how they were fixed (with a slide on how the review policy works), and a "Time for a live demo" finale.
+Nine animated slides shown before the live demo, plus an optional appendix after it (bootstrap, Terraform modules, Terragrunt environments, GitHub Actions workflows; reach it with `→` past the demo slide, `End`, or the A buttons): the goal, what the RehearseAI app does (with a dashboard screenshot and how scoring works), the stack and architecture, one digest / one release (with GCP and AWS example files), the CI/CD flow, both problems and how they were fixed (with a slide on how the review policy works), and a "Time for a live demo" finale.
 
 **Open it:** double-click `index.html` and press `F` for full screen. There's no build step, and it needs no network (fonts are in `fonts/`).
 
