@@ -1,36 +1,71 @@
 @import "tailwindcss";
+@import "@fontsource-variable/inter/wght.css";
+@import "@fontsource-variable/space-grotesk/wght.css";
+
+/* Dark mode follows the toggle (html[data-theme]) and falls back to the OS setting. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 @theme {
-  --color-paper: #f6f4ef;
-  --color-card: #fffdf9;
-  --color-ink: #1d2422;
-  --color-muted: #6a716d;
-  --color-line: #e3ded3;
-  --color-accent: #1f6b58;
+  --color-paper: #f5f7f6;
+  --color-card: #ffffff;
+  --color-sunken: #f1f4f3;
+  --color-ink: #14201c;
+  --color-ink-soft: #3d4a45;
+  --color-muted: #5b6a64;
+  --color-line: #e2e8e5;
+  --color-line-soft: #eef2f0;
+  --color-line-strong: #d3dcd8;
+  --color-accent: #0f766e;
+  --color-accent-strong: #0b5a54;
   --color-accent-ink: #ffffff;
-  --color-accent-soft: #e2eee8;
-  --color-warn: #a4501f;
-  --color-warn-soft: #f6e7dc;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --color-accent-soft: #e6f2f0;
+  --color-warn: #9a3412;
+  --color-warn-bar: #d97706;
+  --color-warn-soft: #fdf1e4;
+  --color-warn-ink: #5a2a0c;
+  --color-info: #1e40af;
+  --color-info-soft: #eaf0fb;
+  --color-violet: #5b21b6;
+  --color-violet-soft: #f3eefb;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: "Space Grotesk Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-paper: #131715;
-    --color-card: #1a1f1d;
-    --color-ink: #e9ece9;
-    --color-muted: #9aa29d;
-    --color-line: #2c3431;
-    --color-accent: #5fbf9f;
-    --color-accent-ink: #0d1412;
-    --color-accent-soft: #1f2f29;
-    --color-warn: #e59a6a;
-    --color-warn-soft: #33241b;
+@layer base {
+  [data-theme="dark"] {
+    --color-paper: #0f1513;
+    --color-card: #161e1b;
+    --color-sunken: #1c2522;
+    --color-ink: #e8eeeb;
+    --color-ink-soft: #c3cdc8;
+    --color-muted: #94a39d;
+    --color-line: #26312d;
+    --color-line-soft: #212b27;
+    --color-line-strong: #33403b;
+    --color-accent: #2dd4bf;
+    --color-accent-strong: #5eead4;
+    --color-accent-ink: #062622;
+    --color-accent-soft: #123a35;
+    --color-warn: #fdba74;
+    --color-warn-bar: #f59e0b;
+    --color-warn-soft: #3a2614;
+    --color-warn-ink: #fed7aa;
+    --color-info: #93c5fd;
+    --color-info-soft: #172a4a;
+    --color-violet: #c4b5fd;
+    --color-violet-soft: #2a2145;
+    color-scheme: dark;
   }
-}
 
-body {
-  background: var(--color-paper);
-  color: var(--color-ink);
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
 }

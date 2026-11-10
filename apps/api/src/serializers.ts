@@ -11,13 +11,18 @@ export const toScenario = (r: ScenarioRow): Scenario => ({
   persona: r.persona,
   description: r.description,
   personaLines: r.personaLines,
+  difficulty: r.difficulty,
+  channel: r.channel,
+  skills: r.skills,
+  minutes: r.minutes,
   createdAt: r.createdAt.toISOString(),
 });
 
-export const toSessionSummary = (r: SessionRow, scenarioTitle: string): SessionSummary => ({
+export const toSessionSummary = (r: SessionRow, scenario: { title: string; persona: string }): SessionSummary => ({
   id: r.id,
   scenarioId: r.scenarioId,
-  scenarioTitle,
+  scenarioTitle: scenario.title,
+  persona: scenario.persona,
   status: r.status,
   score: r.score,
   rubric: r.rubric,

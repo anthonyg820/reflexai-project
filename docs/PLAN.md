@@ -331,3 +331,8 @@ Where the build differs from the sections above, this section wins.
   (a real npm dev-dependency bump, an agent fix, an infra change) against `demo/queue-base` and cleans up.
 - PRs opened with `GITHUB_TOKEN` trigger no workflows, so the demo dispatches CI (`workflow_dispatch`
   on `ci.yml`) and runs the policy script itself. Their checks land on the PR head commits.
+
+### Status (Mon 11/9, night): UI refresh ("RehearseAI")
+- The web app follows the approved mockups: a sidebar with organization switcher and dark-mode toggle, a dashboard (pass rate, weakest skill, per-scenario pass-rate bars), a scenario library (search, difficulty filter, skills), a practice session with a live coach panel, and a session scorecard (score ring, per-criterion notes, key moments, recent attempts).
+- Migration `0003_scenario_details.sql` (expand-only) adds difficulty, channel, skills and minutes to scenarios. It also adds three Acme scenarios and a third tenant, Harbor Bank, with two scenarios.
+- Coaching is rules-based (`scoring/coaching.ts`). LLM coaching is deferred (estimated at about $0.005 per session on Haiku 5.5).

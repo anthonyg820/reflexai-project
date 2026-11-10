@@ -46,8 +46,14 @@ describe.skipIf(!url)("API (e2e)", () => {
   it("isolates tenants", async () => {
     const acme = await request(app.getHttpServer()).get("/api/scenarios").set("x-tenant-id", T).expect(200);
     const other = await request(app.getHttpServer()).get("/api/scenarios").set("x-tenant-id", "northwind-health").expect(200);
-    expect(acme.body).toHaveLength(2);
+    const harbor = await request(app.getHttpServer()).get("/api/scenarios").set("x-tenant-id", "harbor-bank").expect(200);
+    expect(acme.body).toHaveLength(5);
     expect(other.body).toHaveLength(2);
+    expect(harbor.body).toHaveLength(2);
+    expect(acme.body.find((s: { title: string }) => s.title === "Caller in acute crisis")).toMatchObject({
+      difficulty: "advanced",
+      skills: ["Risk assessment", "Safety planning"],
+    });
     expect(acme.body[0].id).not.toBe(other.body[0].id);
   });
 
@@ -73,11 +79,18 @@ describe.skipIf(!url)("API (e2e)", () => {
       .send({ content: "I'm sorry, that sounds hard. I understand." })
       .expect(201);
     expect(reply.body.persona.content).toBe("Second line");
+    expect(reply.body.coach.criteria).toHaveLength(4);
+    expect(reply.body.coach.tips.length).toBeGreaterThan(0);
 
     const ended = await request(http).post(`/api/sessions/${session.body.id}/end`).set("x-tenant-id", T).expect(200);
     expect(ended.body.status).toBe("completed");
     expect(ended.body.rubric).toBe("rubric-a");
     expect(ended.body.score).toBeGreaterThan(0);
+
+    const detail = await request(http).get(`/api/sessions/${session.body.id}`).set("x-tenant-id", T).expect(200);
+    expect(detail.body).toMatchObject({ persona: "Tess", difficulty: "core", passingScore: 70, rubricName: "Empathy basics" });
+    expect(detail.body.feedback.criteria).toHaveLength(4);
+    expect(detail.body.history).toEqual([expect.objectContaining({ id: session.body.id, score: ended.body.score })]);
 
     await request(http)
       .post(`/api/sessions/${session.body.id}/messages`)
@@ -91,6 +104,8 @@ describe.skipIf(!url)("API (e2e)", () => {
     const stats = await request(http).get("/api/stats").set("x-tenant-id", T).expect(200);
     expect(stats.body.rubric).toMatchObject({ id: "rubric-a" });
     expect(stats.body.totals.completed).toBe(1);
-    expect(stats.body.recent[0].id).toBe(session.body.id);
+    expect(stats.body.recent[0]).toMatchObject({ id: session.body.id, persona: "Tess" });
+    expect(stats.body.totals.passRate).toEqual(expect.any(Number));
+    expect(stats.body.weakestSkill).toMatchObject({ name: expect.any(String), average: expect.any(Number) });
   });
 });
