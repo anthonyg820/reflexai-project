@@ -45,6 +45,7 @@
     i = Math.max(0, Math.min(slides.length - 1, i));
     if (i === current) return;
     clearTimers();
+    closePhase();
     slides.forEach((s, j) => {
       s.classList.toggle("is-active", j === i);
       s.setAttribute("aria-hidden", j === i ? "false" : "true");
@@ -73,6 +74,12 @@
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.target.closest && e.target.closest("button, a") && (e.key === " " || e.key === "Enter")) return;
     const k = e.key;
+    if (current === 2 && openPhase >= 0 && (k === "ArrowDown" || k === "ArrowUp" || k === "Escape")) {
+      if (k === "Escape") closePhase();
+      else openPhaseAt(openPhase + (k === "ArrowDown" ? 1 : -1));
+      e.preventDefault();
+      return;
+    }
     if (k === "ArrowRight" || k === "PageDown" || k === " ") go(current + 1);
     else if (k === "ArrowLeft" || k === "PageUp" || k === "Backspace") go(current - 1);
     else if (k === "Home") go(0);
@@ -167,6 +174,65 @@
     clearTimers();
     runPipeline();
   });
+
+  // ---------- 3 · pipeline: click a stage to open its details panel ----------
+  const slide3 = slides[2];
+  const panel = document.getElementById("phase-panel");
+  const caret = document.getElementById("phase-caret");
+  const phases = [...panel.querySelectorAll(".phase")];
+  const hint = document.querySelector(".chrome-bottom .hint");
+  const hintDefault = hint.innerHTML;
+  let openPhase = -1;
+  phases.forEach((ph) => ph.querySelectorAll(".item").forEach((el, i) => el.style.setProperty("--i", i)));
+  const probes = document.getElementById("probes");
+  for (let i = 0; i < 24; i++) {
+    const s = document.createElement("span");
+    s.style.setProperty("--p", i);
+    probes.append(s);
+  }
+
+  function openPhaseAt(i) {
+    i = (i + boxes.length) % boxes.length;
+    openPhase = i;
+    slide3.classList.add("is-open");
+    panel.hidden = false;
+    panel.classList.toggle("is-gate", i === GATE);
+    phases.forEach((ph, j) => (ph.hidden = j !== i));
+    boxes.forEach((b, j) => {
+      b.classList.toggle("selected", j === i);
+      b.setAttribute("aria-expanded", String(j === i));
+    });
+    panel.setAttribute("aria-label", `Details: ${boxes[i].querySelector(".name").textContent}`);
+    hint.innerHTML = "<kbd>↑</kbd> <kbd>↓</kbd> phase · <kbd>Esc</kbd> close · <kbd>←</kbd> <kbd>→</kbd> slides";
+    // Point the caret at the card (the track and the panel share a left edge).
+    const b = boxes[i];
+    caret.style.setProperty("--x", `${b.offsetLeft + b.offsetWidth / 2 - 10}px`);
+  }
+  function closePhase() {
+    if (openPhase < 0) return;
+    openPhase = -1;
+    slide3.classList.remove("is-open");
+    panel.hidden = true;
+    boxes.forEach((b) => {
+      b.classList.remove("selected");
+      b.setAttribute("aria-expanded", "false");
+    });
+    hint.innerHTML = hintDefault;
+  }
+  boxes.forEach((b, i) => {
+    b.addEventListener("click", (e) => {
+      if (e.target.closest("button")) return; // the Approve button keeps its own job
+      openPhase === i ? closePhase() : openPhaseAt(i);
+    });
+    b.addEventListener("keydown", (e) => {
+      if ((e.key === "Enter" || e.key === " ") && !e.target.closest("button")) {
+        e.preventDefault();
+        e.stopPropagation();
+        openPhase === i ? closePhase() : openPhaseAt(i);
+      }
+    });
+  });
+  document.getElementById("phase-close").addEventListener("click", closePhase);
 
   // ---------- 4 · scenario A: outage clock, error rain, guardrails lighting up ----------
   const compare = document.getElementById("compare");

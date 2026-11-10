@@ -10,7 +10,7 @@
 <!--
   Interview summary, shown before the live demo. Open this file directly in a browser
   (no build step, no network needed). Keys: ← → / space / PageUp / PageDown, 1-6 to jump,
-  A to approve prod on slide 3, F for full screen. Links for the last slide: links.js
+  A to approve prod on slide 3 (click a stage for details; ↑ ↓ switch, Esc closes), F for full screen. Links for the last slide: links.js
   (copy links.example.js; links.js is git-ignored).
 -->
 <div class="viewport">
@@ -87,7 +87,7 @@
         <p class="eyebrow reveal" style="--d:0">CI/CD · dev → UAT → prod</p>
         <h1 class="h-l reveal" style="--d:1">Build once. Promote the same bytes.</h1>
       </div>
-      <button type="button" class="replay reveal" style="--d:2" id="pipe-replay">Replay</button>
+      <div class="head-actions reveal" style="--d:2"><span class="click-hint">Click a phase for details</span><button type="button" class="replay" id="pipe-replay">Replay</button></div>
     </header>
     <div class="card digest reveal" style="--d:2">
       <span class="led" aria-hidden="true"></span>
@@ -97,18 +97,219 @@
     <div class="track" id="track">
       <div class="capsule" id="capsule" aria-hidden="true"><span>●</span> sha256:7c1e</div>
       <ol class="stages" id="stages">
-        <li class="stage-box reveal" style="--d:3"><span class="step">PR</span><span class="name">CI</span><span class="text">Lint, types, tests, config check, image scan. Review policy labels risk.</span><span class="pill ok tag">every PR</span></li>
-        <li class="stage-box reveal" style="--d:4"><span class="step">merge</span><span class="name">Build once</span><span class="text">Images built and pushed one time. Digest recorded.</span><span class="pill ok tag">automatic</span></li>
-        <li class="stage-box reveal" style="--d:5"><span class="step">auto</span><span class="name">gcp-dev</span><span class="text">Deployed on every merge, smoke tested.</span><span class="pill ok tag">automatic</span></li>
-        <li class="stage-box reveal" style="--d:6"><span class="step">promote</span><span class="name">gcp-uat</span><span class="text">Takes exactly what dev is running.</span><span class="pill ok tag">one click</span></li>
-        <li class="stage-box gate reveal" style="--d:7" id="gate"><span class="step">approve</span><span class="name">Second person</span><span class="text">Required reviewer on the production environment.</span><button type="button" class="approve-btn" id="approve">Approve <kbd style="border-color:#1a1206">A</kbd></button></li>
-        <li class="stage-box reveal" style="--d:8"><span class="step">canary</span><span class="name">gcp-prod</span><span class="text">10% for 2 minutes, then 100%. AWS prod follows when enabled.</span><span class="canary-label" id="canary-label">waiting</span><div class="canary"><i id="canary"></i></div></li>
+        <li tabindex="0" role="button" aria-expanded="false" aria-controls="phase-panel" data-phase="0" class="stage-box reveal" style="--d:3"><span class="step">PR</span><span class="name">CI</span><span class="text">Lint, types, tests, config check, image scan. Review policy labels risk.</span><span class="pill ok tag">every PR</span></li>
+        <li tabindex="0" role="button" aria-expanded="false" aria-controls="phase-panel" data-phase="1" class="stage-box reveal" style="--d:4"><span class="step">merge</span><span class="name">Build once</span><span class="text">Images built and pushed one time. Digest recorded.</span><span class="pill ok tag">automatic</span></li>
+        <li tabindex="0" role="button" aria-expanded="false" aria-controls="phase-panel" data-phase="2" class="stage-box reveal" style="--d:5"><span class="step">auto</span><span class="name">gcp-dev</span><span class="text">Deployed on every merge, smoke tested.</span><span class="pill ok tag">automatic</span></li>
+        <li tabindex="0" role="button" aria-expanded="false" aria-controls="phase-panel" data-phase="3" class="stage-box reveal" style="--d:6"><span class="step">promote</span><span class="name">gcp-uat</span><span class="text">Takes exactly what dev is running.</span><span class="pill ok tag">one click</span></li>
+        <li tabindex="0" role="button" aria-expanded="false" aria-controls="phase-panel" data-phase="4" class="stage-box gate reveal" style="--d:7" id="gate"><span class="step">approve</span><span class="name">Second person</span><span class="text">Required reviewer on the production environment.</span><button type="button" class="approve-btn" id="approve">Approve <kbd style="border-color:#1a1206">A</kbd></button></li>
+        <li tabindex="0" role="button" aria-expanded="false" aria-controls="phase-panel" data-phase="5" class="stage-box reveal" style="--d:8"><span class="step">canary</span><span class="name">gcp-prod</span><span class="text">10% for 2 minutes, then 100%. AWS prod follows when enabled.</span><span class="canary-label" id="canary-label">waiting</span><div class="canary"><i id="canary"></i></div></li>
       </ol>
     </div>
     <div class="facts">
       <div class="reveal" style="--d:9"><b>No stage can be skipped</b><span>Promote reads the version running in the previous stage, not a version you type.</span></div>
       <div class="reveal" style="--d:10"><b>Smoke tested before traffic</b><span>Every new revision is checked on its own preview URL at 0% traffic first.</span></div>
       <div class="reveal" style="--d:11"><b>One-click rollback</b><span>Traffic moves back to the previous revision in seconds. Drift is checked nightly.</span></div>
+    </div>
+    <!-- Phase details: click a stage card (or Tab + Enter). ↑ ↓ switch phase, Esc closes. -->
+    <div class="phase-panel" id="phase-panel" role="region" aria-live="polite" hidden>
+      <span class="phase-caret" id="phase-caret" aria-hidden="true"></span>
+      <button type="button" class="phase-close" id="phase-close" aria-label="Close phase details"><kbd>Esc</kbd> close <span aria-hidden="true">×</span></button>
+
+      <div class="phase" data-phase="0" hidden>
+        <div class="phase-info item">
+          <p class="phase-eyebrow">Phase 1 of 6 · every pull request</p>
+          <h2>CI: prove it before it merges</h2>
+          <p class="lead">Two jobs run side by side. Nothing deploys here: CI decides whether this commit may become an image.</p>
+          <dl class="meta">
+            <div><dt>Workflow</dt><dd><code>.github/workflows/ci.yml</code></dd></div>
+            <div><dt>Scope</dt><dd>PRs check only what they touch (<code>turbo --affected</code>)</dd></div>
+          </dl>
+          <p class="callout"><b>Scenario A is stopped here twice:</b> an unknown config key fails validation, and a release spec that can’t render fails the run.</p>
+        </div>
+        <div class="phase-body cols-3">
+          <div class="group">
+            <p class="group-title item">Job 1 · code</p>
+            <ol class="checks">
+              <li class="item"><span class="mark">✓</span><div><b>Install</b><span>Frozen lockfile: fails if it disagrees with package.json</span></div></li>
+              <li class="item"><span class="mark">✓</span><div><b>Lint · ESLint</b><span>Includes the “effects return nothing” rule added after a real crash</span></div></li>
+              <li class="item"><span class="mark">✓</span><div><b>Typecheck · tsc --strict</b><span>Every app and shared package</span></div></li>
+              <li class="item"><span class="mark">✓</span><div><b>Unit tests · vitest</b><span>Each rubric has a passing and a failing transcript</span></div></li>
+            </ol>
+          </div>
+          <div class="group">
+            <p class="group-title item">Job 1 · runtime &amp; release</p>
+            <ol class="checks">
+              <li class="item"><span class="mark">✓</span><div><b>API e2e · real Postgres</b><span>Migrations, tenant isolation, survives a dropped DB connection</span></div></li>
+              <li class="item"><span class="mark">✓</span><div><b>Build</b><span>Next.js standalone + NestJS</span></div></li>
+              <li class="item"><span class="mark">✓</span><div><b>Validate runtime config <span class="chip warn">Scenario A</span></b><span>Every environment against the zod schema</span></div></li>
+              <li class="item"><span class="mark">✓</span><div><b>Render every release spec <span class="chip warn">Scenario A</span></b><span>5 environments × 2 services</span></div></li>
+            </ol>
+          </div>
+          <div class="group">
+            <p class="group-title item">Job 1 · tooling</p>
+            <ol class="checks">
+              <li class="item"><span class="mark">✓</span><div><b>actionlint + shellcheck</b><span>Workflows and deploy scripts</span></div></li>
+              <li class="item"><span class="mark">✓</span><div><b>Review-policy tests</b><span>And the demo PR patches still apply</span></div></li>
+            </ol>
+            <p class="group-title item">Job 2 · images ×3, in parallel</p>
+            <ol class="checks">
+              <li class="item"><span class="mark">✓</span><div><b>Build &amp; scan api · web · collector</b><span>Trivy: any <em>CRITICAL</em> vulnerability fails</span></div></li>
+            </ol>
+            <p class="group-title item">Required status</p>
+            <ol class="checks">
+              <li class="item"><span class="mark">✓</span><div><b>review-policy <span class="chip blue">Scenario B</span></b><span>Labels risk low · medium · high; decides who reviews</span></div></li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase" data-phase="1" hidden>
+        <div class="phase-info item">
+          <p class="phase-eyebrow">Phase 2 of 6 · every merge to main</p>
+          <h2>Build once</h2>
+          <p class="lead">Each image is built a single time per commit. Every later stage refers to it by digest, so what was tested is what ships.</p>
+          <dl class="meta">
+            <div><dt>Workflow</dt><dd><code>.github/workflows/release.yml</code></dd></div>
+            <div><dt>Images</dt><dd>api · web · collector</dd></div>
+          </dl>
+          <p class="callout">No <code>NEXT_PUBLIC_*</code> and no build-time config: the same image runs in any environment.</p>
+        </div>
+        <div class="phase-body cols-split">
+          <ol class="checks">
+            <li class="item"><span class="mark num">1</span><div><b>Skip if already built</b><span>The tag <code>sha-&lt;commit&gt;</code> is immutable; a re-run reuses it</span></div></li>
+            <li class="item"><span class="mark num">2</span><div><b>docker buildx build</b><span>Layer cache in GitHub Actions; the commit SHA is baked in as the version</span></div></li>
+            <li class="item"><span class="mark num">3</span><div><b>Push to Artifact Registry</b><span><code>rehearse/api:sha-1dc2fcf</code> and friends</span></div></li>
+            <li class="item"><span class="mark num">4</span><div><b>Record the digest</b><span>In the run summary; deploys pin <code>image@sha256:…</code></span></div></li>
+            <li class="item off"><span class="mark num">5</span><div><b>Copy to ECR, byte for byte <span class="chip">when AWS is on</span></b><span><code>crane copy</code>, then both digests are compared</span></div></li>
+          </ol>
+          <div class="visual">
+            <p class="group-title item">What gets recorded</p>
+            <div class="digests item">
+              <div><span>api</span><span>sha256:7c1e…a94f</span></div>
+              <div><span>web</span><span>sha256:b40d…19e2</span></div>
+              <div><span>collector</span><span>sha256:52aa…0c7d</span></div>
+            </div>
+            <p class="note item"><code>sha-1dc2fcf</code> → one tag, one digest per image</p>
+            <p class="note item"><span class="chip ok">dev</span> <span class="chip ok">uat</span> <span class="chip ok">prod</span> all deploy these exact digests</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase" data-phase="2" hidden>
+        <div class="phase-info item">
+          <p class="phase-eyebrow">Phase 3 of 6 · automatic after the build</p>
+          <h2>gcp-dev</h2>
+          <p class="lead">Every merge lands here within minutes. The new revision has to prove itself before it gets any traffic.</p>
+          <dl class="meta">
+            <div><dt>Workflow</dt><dd><code>release.yml</code> → <code>deploy-gcp.yml</code></dd></div>
+            <div><dt>Order</dt><dd>api first, then web (web needs the api’s URL)</dd></div>
+          </dl>
+          <p class="callout"><b>Image, config and revision shape ship together</b> as one rendered spec, so config can’t get ahead of the image.</p>
+        </div>
+        <div class="phase-body cols-split">
+          <ol class="checks">
+            <li class="item"><span class="mark num">1</span><div><b>Render the release</b><span><code>image@sha256</code> + <code>gcp-dev.env.yaml</code> + revision shape → one YAML</span></div></li>
+            <li class="item"><span class="mark num">2</span><div><b>Create the revision at 0% traffic</b><span><code>gcloud run services replace</code></span></div></li>
+            <li class="item"><span class="mark num">3</span><div><b>Startup check <span class="chip warn">Scenario A</span></b><span>Config is validated at boot; a bad revision never becomes ready</span></div></li>
+            <li class="item"><span class="mark num">4</span><div><b>Smoke the candidate URL</b><span><code>/health</code> must report this exact version, then key API and web pages</span></div></li>
+            <li class="item"><span class="mark num">5</span><div><b>Move traffic to 100%</b><span>Then smoke the live URL once more</span></div></li>
+            <li class="item"><span class="mark num">6</span><div><b>Record it</b><span>Image tagged <code>gcp-dev</code>; deploy annotation in Grafana</span></div></li>
+          </ol>
+          <div class="visual">
+            <p class="group-title item">Traffic to the new revision</p>
+            <div class="bar-row item"><div class="bar-label"><span>candidate · smoke tests</span><span>0%</span></div><div class="bar"><i style="--to:0%"></i></div></div>
+            <div class="bar-row item"><div class="bar-label"><span>after smoke passes</span><span>100%</span></div><div class="bar"><i style="--to:100%"></i></div></div>
+            <p class="dashed item">If any step fails, traffic stays on the previous revision and the run goes red. Users never see the candidate.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase" data-phase="3" hidden>
+        <div class="phase-info item">
+          <p class="phase-eyebrow">Phase 4 of 6 · one click</p>
+          <h2>gcp-uat</h2>
+          <p class="lead">Promote has no version box to type in. It asks Cloud Run what dev is serving and deploys exactly that.</p>
+          <dl class="meta">
+            <div><dt>Workflow</dt><dd><code>promote.yml</code>, target <code>uat</code></dd></div>
+            <div><dt>Rebuilds</dt><dd>None</dd></div>
+          </dl>
+          <p class="callout">Skipping a stage is impossible by design: UAT only receives what dev runs, and prod only what UAT runs.</p>
+        </div>
+        <div class="phase-body cols-split">
+          <ol class="checks">
+            <li class="item"><span class="mark num">1</span><div><b>Run Promote → uat</b><span>The only input is the target environment</span></div></li>
+            <li class="item"><span class="mark num">2</span><div><b>Read what gcp-dev is serving</b><span><code>current-version.sh gcp dev</code> asks Cloud Run, not a person</span></div></li>
+            <li class="item"><span class="mark num">3</span><div><b>Same deploy path as dev</b><span>0% → startup check → smoke → 100%, with UAT’s config</span></div></li>
+            <li class="item off"><span class="mark num">4</span><div><b>Prove both clouds hold the same bytes <span class="chip">when AWS is on</span></b><span>GCP and AWS registries must return one digest</span></div></li>
+          </ol>
+          <div class="visual">
+            <p class="group-title item">Before → after</p>
+            <div class="env-card item"><div><b>gcp-dev</b><span class="chip ok">serving</span></div><code>version 1dc2fcf</code><code class="acc">api@sha256:7c1e…a94f</code></div>
+            <p class="same item"><span>↓</span> same digest, no rebuild</p>
+            <div class="env-card on item"><div><b>gcp-uat</b><span class="chip ok">now serving</span></div><code>version 1dc2fcf</code><code class="acc">api@sha256:7c1e…a94f</code></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase" data-phase="4" hidden>
+        <div class="phase-info item">
+          <p class="phase-eyebrow">Phase 5 of 6 · a human decision</p>
+          <h2>Second person</h2>
+          <p class="lead">Production needs one approval from a listed reviewer. The run waits, and nothing reaches prod until they say yes.</p>
+          <dl class="meta">
+            <div><dt>Where</dt><dd><code>production</code> environment in GitHub, required reviewers</dd></div>
+            <div><dt>Job</dt><dd><code>Approve production release</code></dd></div>
+          </dl>
+          <p class="callout">The approval is recorded with the reviewer’s name, which answers “who shipped this?” later.</p>
+        </div>
+        <div class="phase-body cols-split">
+          <ol class="checks">
+            <li class="item"><span class="mark num">1</span><div><b>Run Promote → prod</b><span>Reads the version serving in UAT (and checks gcp-uat = aws-uat)</span></div></li>
+            <li class="item"><span class="mark num">2</span><div><b>Run pauses on “production”</b><span>Required reviewers set on the GitHub environment</span></div></li>
+            <li class="item"><span class="mark num">3</span><div><b>Reviewer sees exactly what ships</b><span>Version and digest are in the run summary</span></div></li>
+            <li class="item"><span class="mark num">4</span><div><b>Approve or reject</b><span>Logged with their name; “prevent self-review” can block approving your own run</span></div></li>
+            <li class="item"><span class="mark num">5</span><div><b>One deploy at a time</b><span>A concurrency group per environment</span></div></li>
+          </ol>
+          <div class="visual">
+            <p class="group-title item">What the reviewer sees</p>
+            <div class="review-card item">
+              <div class="rc-head"><span class="rc-dot"></span><b>Review pending deployment</b></div>
+              <p>Promote · <code>1dc2fcf</code> → <b>production</b><br><code class="acc">api@sha256:7c1e…a94f</code></p>
+              <div class="rc-actions"><span class="rc-approve">Approve and deploy</span><span class="rc-reject">Reject</span></div>
+            </div>
+            <p class="note item">Press <kbd>A</kbd> to approve and watch the canary.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase" data-phase="5" hidden>
+        <div class="phase-info item">
+          <p class="phase-eyebrow">Phase 6 of 6 · after approval</p>
+          <h2>gcp-prod</h2>
+          <p class="lead">The same checks plus a canary: a small share of real users first, with an automatic way back.</p>
+          <dl class="meta">
+            <div><dt>Workflow</dt><dd><code>promote.yml</code> → <code>deploy-gcp.yml</code> (canary on)</dd></div>
+            <div><dt>Rollback</dt><dd><code>rollback.yml</code>: back to the previous revision in seconds</dd></div>
+          </dl>
+          <p class="callout">Grafana alerts if the API’s 5xx rate tops 2% for a minute, so anything the canary misses still pages someone.</p>
+        </div>
+        <div class="phase-body cols-split">
+          <ol class="checks">
+            <li class="item"><span class="mark num">1</span><div><b>0% + smoke on the candidate URL</b><span>Same as dev and UAT</span></div></li>
+            <li class="item"><span class="mark num">2</span><div><b>10% of real traffic for 2 minutes</b><span>Probed every 5 seconds: 24 checks</span></div></li>
+            <li class="item"><span class="mark num">3</span><div><b>Any 5xx → automatic rollback <span class="chip warn">safety net</span></b><span>Traffic returns to the previous revision; the run fails</span></div></li>
+            <li class="item"><span class="mark num">4</span><div><b>Clean → 100%</b><span>Then smoke the live URL again</span></div></li>
+            <li class="item off"><span class="mark num">5</span><div><b>AWS prod follows <span class="chip">when AWS is on</span></b><span>Same digest on ECS Fargate</span></div></li>
+            <li class="item"><span class="mark num">6</span><div><b>Tell people</b><span>Slack message and a Grafana deploy annotation</span></div></li>
+          </ol>
+          <div class="visual">
+            <p class="group-title item">Canary · 2 minutes</p>
+            <div class="bar-row item"><div class="bar-label"><span>new revision</span><span>10%</span></div><div class="bar"><i style="--to:10%"></i></div><div class="probes" id="probes"></div></div>
+            <div class="bar-row item"><div class="bar-label"><span>then</span><span>100%</span></div><div class="bar"><i style="--to:100%;--wait:3.6s"></i></div></div>
+            <p class="warnbox item"><b>5xx?</b> Traffic snaps back to the old revision; nobody needs to be awake.</p>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 

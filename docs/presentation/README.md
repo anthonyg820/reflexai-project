@@ -9,6 +9,8 @@ Six animated slides shown before the live demo: the goal, the stack and architec
 | `→` `space` `PageDown` / `←` `PageUp` | Next / previous slide |
 | `1`–`6`, `Home`, `End` | Jump to a slide |
 | `A` | Approve production on slide 3 (the image stops at the approval gate until you do) |
+| Click a stage, or `Tab` + `Enter` | Slide 3: open that phase's details (the checks CI runs, the deploy steps, the canary…) |
+| `↑` `↓` / `Esc` | Slide 3, details open: previous / next phase, close |
 | `F` | Full screen |
 
 - **Slide 4:** the Before / Side by side / After switch changes the view.
