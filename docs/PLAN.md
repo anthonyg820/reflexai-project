@@ -310,3 +310,9 @@ Where the build differs from the sections above, this section wins.
 - **AWS deferred.** The AWS account is inside an AWS Organization whose service control policy denies `s3:CreateBucket` (and likely more), so nothing can be created there. Revisit with a standalone account.
 - Workflows and bootstrap steps now run **GCP-only** until AWS is configured: the ECR copy, aws-uat/aws-prod promotion and AWS Terraform legs skip themselves while the `AWS_ACCOUNT_ID` repo variable is unset.
 - **Next:** Neon (3 branches) + Grafana Cloud, `4-secrets.cmd`, `5-github-setup.cmd`, push to main, then promote to UAT and prod.
+
+### Status (Mon 11/9, 18:50): GCP pipeline complete
+- Commit `f8da481` went **dev → UAT → prod** on GCP: built once, promoted by digest, smoke-tested on tagged URLs at every stage, and approved by a human before prod. In prod it ran as a 10% canary before taking all traffic.
+- URLs: dev https://rehearse-dev-web-2di5u2z6ya-ue.a.run.app · uat https://rehearse-uat-web-2di5u2z6ya-ue.a.run.app · prod https://rehearse-prod-web-2di5u2z6ya-ue.a.run.app
+- Fixes found by the first real runs: Cloud Run reserves `/healthz` (now `/health`); collector-contrib 0.139.0 had critical CVEs (now 0.164.0).
+- **Still to do:** confirm telemetry arrives in Grafana Cloud and import the dashboard there; rehearse the Scenario A demo on gcp-dev; AWS (deferred).

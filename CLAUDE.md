@@ -11,9 +11,14 @@ At the start of every turn, append the user's prompt to `docs/prompts.md` **befo
   ### <n>. <Day YYYY-MM-DD HH:MM>
 
   <prompt text>
+
+  **Claude:**
+
+  <Claude's reply>
   ```
+- At the end of the turn, add Claude's reply under that entry's `**Claude:**` marker (the final reply, plus any progress messages sent mid-turn, labelled). Condense long tables or file lists if needed, but keep the substance.
 - Leave out attached file contents and system or tool messages; log only what the user typed.
-- Never edit or remove earlier entries.
+- Never edit or remove earlier entries (only the current entry's reply may be filled in).
 - Exception to word-for-word: replace secrets (tokens, passwords, keys, connection strings) with `[REDACTED]`. The repo is public.
 
 ## Keep this file current (always do this)
@@ -44,7 +49,7 @@ Update this CLAUDE.md in the same turn whenever something it describes changes, 
 - Naming conventions link Terraform and release specs: `rehearse-<env>-<svc>` (services, runtime SA, task family), `rehearse-<env>-ecs-exec`, `/rehearse/<env>/<secret>` (SSM), `rehearse-<env>-<secret>` (GCP secrets).
 
 ## Commands
-- Cloud bootstrap on Windows: double-click launchers in `bootstrap/` (1 tools, 2 GCP, 3 AWS, 4 secrets, 5 GitHub); state in git-ignored `bootstrap/settings.env` (the Makefile and `make.ps1` load it, so no user-level env vars are needed; setting those on Windows hangs for ~1 min), logs in `bootstrap/logs/`. Claude can't type in the user's terminals, so new interactive steps should be launchers too.
+- Cloud bootstrap on Windows: double-click launchers in `bootstrap/` (1 tools, 2 GCP, 3 AWS, 4 secrets, 5 GitHub, 6 Grafana Cloud dashboard); state in git-ignored `bootstrap/settings.env` (the Makefile and `make.ps1` load it, so no user-level env vars are needed; setting those on Windows hangs for ~1 min), logs in `bootstrap/logs/`. Claude can't type in the user's terminals, so new interactive steps should be launchers too.
 - Local Postgres is on host port 55432 (not 5432/5433: the user's machine runs its own Postgres). The user's Windows machine has Avast HTTPS scanning, so npm downloads in Docker builds need `registry.npmjs.org` excluded from Web Shield (done). The web image is Debian-based (`node:22-bookworm-slim`) because Next.js's musl binaries crash on that Docker Desktop; `make up` builds images one at a time.
 Use the Makefile on Linux/macOS/WSL (`make` lists everything) and `make.ps1` on Windows (`.\make <command> -Cloud aws -Env uat`, via `make.cmd`). They expose the same commands: when adding or changing a target, update BOTH, and keep tool version pins identical (also in `.github/actions/setup-iac`). Keep `make.ps1` ASCII-only and compatible with Windows PowerShell 5.1.
 - `make setup` (once), `make up` / `make down` (Docker stack: web :3000, api :8080, Grafana :3001), `make dev` (hot reload)

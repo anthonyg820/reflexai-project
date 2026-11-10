@@ -11,6 +11,7 @@ Values the steps discover (project ID, account ID, Grafana endpoint) go in
 | `3-aws-setup.cmd` | AWS credentials check (`aws configure` if needed), first Terragrunt apply for AWS | Paste an IAM admin access key, type `y` |
 | `4-secrets.cmd` | Stores Neon URLs and the Grafana token in Secret Manager / SSM | Paste values (hidden) |
 | `5-github-setup.cmd` | Repo variables + deployment environments (`production` with you as reviewer) | Sign in to GitHub in the browser |
+| `6-grafana-dashboard.cmd` | Loads `deploy/grafana/*.json` into Grafana Cloud (re-run after dashboard changes) | Paste your stack URL once and a service account token |
 
 Accounts needed first: Google Cloud with billing (step 2), AWS (step 3), Neon with a branch per
 environment (`gcp-dev`, `gcp-uat`, `gcp-prod`, plus `aws-uat`, `aws-prod` once AWS exists) and

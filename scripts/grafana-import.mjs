@@ -46,8 +46,13 @@ try {
     const result = await api("POST", "/api/dashboards/db", { dashboard, overwrite: true, message: "imported by scripts/grafana-import.mjs" });
     console.log(`grafana: imported "${dashboard.title}" -> ${url}${result.url}`);
   }
-  await api("PUT", "/api/org/preferences", { homeDashboardUID: "rehearse-overview" });
-  console.log("grafana: Rehearse overview is now the home dashboard");
+  try {
+    await api("PUT", "/api/org/preferences", { homeDashboardUID: "rehearse-overview" });
+    console.log("grafana: Rehearse overview is now the home dashboard");
+  } catch {
+    // Needs an Admin token; Editor tokens can import dashboards but not change org preferences.
+    console.log("grafana: (skipped setting the home dashboard: the token needs the Admin role for that)");
+  }
 } catch (err) {
   // Never fail the caller (make up / make dev) over dashboards.
   console.warn(`grafana: dashboard import skipped: ${err instanceof Error ? err.message : err}`);

@@ -49,3 +49,9 @@ function Confirm-Step([string] $Question) {
         Write-Host '  Please type y or n.'
     }
 }
+
+function Use-ProcessEnv([hashtable] $Vars, [scriptblock] $Block) {
+    # Set environment variables for this process only, run the block, then remove them.
+    foreach ($k in $Vars.Keys) { [Environment]::SetEnvironmentVariable($k, $Vars[$k], 'Process') }
+    try { & $Block } finally { foreach ($k in $Vars.Keys) { [Environment]::SetEnvironmentVariable($k, $null, 'Process') } }
+}
