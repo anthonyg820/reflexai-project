@@ -32,6 +32,12 @@ describe("rubrics", () => {
     expect(good).toBeGreaterThan(bad);
     expect(good).toBeLessThanOrEqual(100);
   });
+
+  it("matches phrases typed with curly apostrophes", () => {
+    const straight = getRubric("rubric-b").score({ traineeMessages: ["What i'm hearing is that work is a lot?"] });
+    const curly = getRubric("rubric-b").score({ traineeMessages: ["What I\u2019m hearing is that work is a lot?"] });
+    expect(curly).toBe(straight);
+  });
 });
 
 describe("every rubric", () => {
