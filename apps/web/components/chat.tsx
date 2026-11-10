@@ -33,7 +33,12 @@ export function Chat({ initial }: { initial: SessionDetail }) {
   const [error, setError] = useState<string | null>(null);
   const end = useRef<HTMLLIElement>(null);
 
-  useEffect(() => end.current?.scrollIntoView({ block: "nearest" }), [messages.length]);
+  // Braces matter: newer Chromium returns a Promise from scrollIntoView(), and an
+  // effect that returns anything but a cleanup function crashes React on the next
+  // re-run or unmount ("destroy is not a function"): the error page users saw.
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: "nearest" });
+  }, [messages.length]);
 
   async function run(fn: () => Promise<void>) {
     setBusy(true);
