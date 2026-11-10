@@ -294,7 +294,7 @@
   }
 
   // ---------- 6 · live demo: countdown, letter drop, ripples ----------
-  const demo = slides[5];
+  const demo = slides[6];
   const countdown = demo.querySelector(".countdown span");
   document.querySelectorAll("#demo-title .line").forEach((line, li) => {
     const offset = li * 11;
@@ -325,7 +325,7 @@
     else a.hidden = true;
   }
 
-  const enter = { 2: runPipeline, 3: runScenarioA, 4: runScenarioB, 5: runDemo };
+  const enter = { 2: runPipeline, 3: runScenarioA, 4: runScenarioB, 6: runDemo };
 
   const start = Number(location.hash.slice(1));
   go(Number.isInteger(start) && start >= 1 && start <= slides.length ? start - 1 : 0);
