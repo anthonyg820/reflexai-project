@@ -41,6 +41,7 @@ Update this CLAUDE.md in the same turn whenever something it describes changes, 
 - Design: the "Rehearse UI refresh" canvas (sidebar layout, Space Grotesk headings, Inter body text). Colors are tokens in `apps/web/app/globals.css`; dark mode overrides them under `[data-theme="dark"]`. The sidebar toggle stores a `theme` cookie; with no cookie, an inline script follows the OS setting. Use the tokens (`bg-card`, `text-muted`, `bg-accent-soft`…), never raw hex values in components.
 - Fonts are self-hosted via `@fontsource-variable/*` (npm). Don't use `next/font/google`: it downloads at build time, and Avast blocks that on the user's machine.
 - Coaching (live coach panel, scorecard criteria, key moments) is rules-based in `apps/api/src/scoring/coaching.ts`. It's separate from the rubric score, which stays the Scenario A switch.
+- The Rubrics page (`/rubrics`, API `GET /api/rubrics` + `POST /api/rubrics/preview`) explains each rubric from `scoring/rubric-info.ts`. A test requires an entry for every rubric, so add one when you add a rubric. The page never throws on an unknown `SCORING_RUBRIC`; it shows a warning instead.
 
 ## Review policy (Scenario B)
 - `scripts/review-policy/classify.mjs` decides `risk:low|medium|high` by path and dependency semver; the `review-policy` commit status is a required check (rulesets from `bootstrap/7-repo-rules.cmd`). New platform paths go in both `HIGH_RISK_PATHS` and `.github/CODEOWNERS`.

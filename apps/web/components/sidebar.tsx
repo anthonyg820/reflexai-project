@@ -9,6 +9,7 @@ const NAV = [
   { href: "/", label: "Dashboard", icon: "dashboard" as const, match: (p: string) => p === "/" },
   { href: "/scenarios", label: "Scenarios", icon: "book" as const, match: (p: string) => p.startsWith("/scenarios") },
   { href: "/sessions", label: "Sessions", icon: "chart" as const, match: (p: string) => p.startsWith("/sessions") },
+  { href: "/rubrics", label: "Rubrics", icon: "check" as const, match: (p: string) => p.startsWith("/rubrics") },
 ];
 
 export function Sidebar({ tenant, buildInfo }: { tenant: string; buildInfo: React.ReactNode }) {
