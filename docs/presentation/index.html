@@ -9,8 +9,8 @@
 <body>
 <!--
   Interview summary, shown before the live demo. Open this file directly in a browser
-  (no build step, no network needed). Keys: ← → / space / PageUp / PageDown, 1-8 to jump,
-  A to approve prod on slide 4 (click a stage for details; ↑ ↓ switch, Esc closes), F for full screen. Links for the last slide: links.js
+  (no build step, no network needed). Keys: ← → / space / PageUp / PageDown, 1-9 to jump,
+  A to approve prod on slide 5 (click a stage for details; ↑ ↓ switch, Esc closes), F for full screen. Links for the last slide: links.js
   (copy links.example.js; links.js is git-ignored).
 -->
 <div class="viewport">
@@ -20,10 +20,10 @@
     <span class="brand-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
     <span class="brand-name">RehearseAI</span>
   </div>
-  <div class="chrome-top" id="counter" aria-live="polite">01 / 08</div>
+  <div class="chrome-top" id="counter" aria-live="polite">01 / 09</div>
 
   <!-- 1 · Goal -->
-  <section class="slide s-goal is-active" aria-label="1 of 8: Goal">
+  <section class="slide s-goal is-active" aria-label="1 of 9: Goal">
     <div class="orbit" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b><b></b></div>
     <div class="content">
       <p class="eyebrow reveal" style="--d:0">ReflexAI · Senior Platform Engineer · technical deep dive</p>
@@ -37,8 +37,71 @@
     </div>
   </section>
 
-  <!-- 2 · Stack & architecture -->
-  <section class="slide s-stack" aria-label="2 of 8: Stack and architecture">
+  <!-- 2 · The app -->
+  <section class="slide s-app" aria-label="2 of 9: The RehearseAI app">
+    <header>
+      <p class="eyebrow reveal" style="--d:0">The app</p>
+      <h1 class="h-l reveal" style="--d:1; font-size:46px">RehearseAI: practice the hard conversations.</h1>
+      <p class="lede reveal" style="--d:2; margin-top:10px; font-size:16px; max-width:none">A training simulator for front-line staff. Talk to a simulated caller or customer, get coached as you go, and get scored against a rubric.</p>
+    </header>
+
+    <div class="app-grid">
+      <div class="app-what">
+        <h2 class="pol-label reveal" style="--d:3">What it does</h2>
+        <ol class="app-steps">
+          <li class="reveal" style="--d:3"><span class="num">1</span><div><b>Pick a scenario</b><span>A persona with a situation: “first-time caller, high anxiety”, “customer disputing a fee”. Each has a difficulty, a channel and a target rubric.</span></div></li>
+          <li class="reveal" style="--d:4"><span class="num">2</span><div><b>Practice the conversation</b><span>Type replies; the simulated person answers. A live coach panel nudges you as you go (“try reflecting their words back”).</span></div></li>
+          <li class="reveal" style="--d:5"><span class="num">3</span><div><b>Get scored and coached</b><span>End the session for a rubric score with pass / fail, four coaching criteria and the key moments that moved the score.</span></div></li>
+        </ol>
+        <div class="app-orgs reveal" style="--d:6">
+          <span>3 organizations (tenants) · 5 scenarios each · 8 rubrics</span>
+          <div><i>Acme Crisis Line</i><i>Northwind Health</i><i>Harbor Bank</i></div>
+        </div>
+      </div>
+      <figure class="app-shot">
+        <div class="browser">
+          <div class="frame-bar" aria-hidden="true"><i></i><i></i><i></i><span class="mono">rehearse-dev-web · /dashboard</span></div>
+          <img src="img/dashboard.webp" width="1440" height="740" alt="The RehearseAI dashboard: sessions completed, average score, pass rate and weakest skill, pass rate by scenario, and recent sessions">
+        </div>
+        <figcaption>The dashboard: sessions, average score, pass rate, the team’s weakest skill, and results per scenario.</figcaption>
+      </figure>
+    </div>
+
+    <section class="card app-score reveal" style="--d:7" aria-label="How scoring works">
+      <div class="app-ex">
+        <h2 class="pol-label">How a score is made · example: Empathy basics</h2>
+        <div class="eq">
+          <div class="tok" style="--t:0"><b>40</b><span>starting score</span></div><em style="--t:1">+</em>
+          <div class="tok acc" style="--t:2"><b>30</b><span>3 empathy phrases × 10</span></div><em style="--t:3">+</em>
+          <div class="tok acc" style="--t:4"><b>15</b><span>3 replies × 5</span></div><em style="--t:5">=</em>
+          <div class="tok total" style="--t:6"><b>85</b><span>score (0–100)</span></div>
+          <div class="verdict" style="--t:7"><span>✓ Pass</span><small>needs 70</small></div>
+        </div>
+        <p>Rules add or subtract points; the total is kept between 0 and 100, and passes at the rubric’s pass mark.</p>
+      </div>
+      <div class="app-rubrics">
+        <h2 class="pol-label">8 rubrics, one engine</h2>
+        <div class="chips">
+          <span class="on" style="--c:0">Empathy basics <i>70</i></span><span style="--c:1">Active listening <i>75</i></span><span style="--c:2">Optimism <i>70</i></span><span style="--c:3">Sales persistence <i>70</i></span>
+          <span style="--c:4">De-escalation <i>70</i></span><span style="--c:5">Clear explanation <i>70</i></span><span style="--c:6">Service recovery <i>70</i></span><span style="--c:7">Crisis safety <i>75</i></span>
+        </div>
+        <p>A rubric is data: a starting score, a pass mark and point rules. Each scenario picks one.</p>
+      </div>
+      <div class="app-coach">
+        <h2 class="pol-label">Coaching (separate)</h2>
+        <ul>
+          <li style="--v:4">Empathy<span aria-label="4 of 5"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i></span></li>
+          <li style="--v:3">Open questions<span aria-label="3 of 5"><i class="f"></i><i class="f"></i><i class="f"></i><i></i><i></i></span></li>
+          <li style="--v:2">Reflective listening<span aria-label="2 of 5"><i class="f"></i><i class="f"></i><i></i><i></i><i></i></span></li>
+          <li style="--v:4">Pacing<span aria-label="4 of 5"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i></span></li>
+        </ul>
+        <p>0–5 each, plus live tips and key moments</p>
+      </div>
+    </section>
+  </section>
+
+  <!-- 3 · Stack & architecture -->
+  <section class="slide s-stack" aria-label="3 of 9: Stack and architecture">
     <header class="slide-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Stack &amp; architecture</p>
@@ -80,8 +143,8 @@
     </div>
   </section>
 
-  <!-- 3 · One digest, one release (GCP / AWS tabs) -->
-  <section class="slide s-release" aria-label="3 of 8: One digest, one release">
+  <!-- 4 · One digest, one release (GCP / AWS tabs) -->
+  <section class="slide s-release" aria-label="4 of 9: One digest, one release">
     <header>
       <p class="eyebrow reveal" style="--d:0">Stack &amp; architecture · the release</p>
       <h1 class="h-l reveal" style="--d:1; font-size:42px">One digest. One release.</h1>
@@ -178,8 +241,8 @@
     </div>
   </section>
 
-  <!-- 4 · CI/CD -->
-  <section class="slide s-pipeline" aria-label="4 of 8: CI/CD from dev to UAT to prod">
+  <!-- 5 · CI/CD -->
+  <section class="slide s-pipeline" aria-label="5 of 9: CI/CD from dev to UAT to prod">
     <header class="slide-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">CI/CD · dev → UAT → prod</p>
@@ -411,8 +474,8 @@
     </div>
   </section>
 
-  <!-- 5 · Scenario A -->
-  <section class="slide s-a" aria-label="5 of 8: Right config, wrong image">
+  <!-- 6 · Scenario A -->
+  <section class="slide s-a" aria-label="6 of 9: Right config, wrong image">
     <header class="slide-head">
       <div>
         <p class="eyebrow warn reveal" style="--d:0">Problem 1</p>
@@ -452,8 +515,8 @@
     </div>
   </section>
 
-  <!-- 6 · Scenario B -->
-  <section class="slide s-b" aria-label="6 of 8: The review queue">
+  <!-- 7 · Scenario B -->
+  <section class="slide s-b" aria-label="7 of 9: The review queue">
     <header>
       <p class="eyebrow warn reveal" style="--d:0">Problem 2</p>
       <h1 class="h-l reveal" style="--d:1">The review queue.</h1>
@@ -482,8 +545,8 @@
     </div>
   </section>
 
-  <!-- 7 · Review policy (Problem 2, in detail) -->
-  <section class="slide s-policy" aria-label="7 of 8: The review policy">
+  <!-- 8 · Review policy (Problem 2, in detail) -->
+  <section class="slide s-policy" aria-label="8 of 9: The review policy">
     <header class="slide-head">
       <div>
         <p class="eyebrow warn reveal" style="--d:0">Problem 2</p>
@@ -553,8 +616,8 @@
     </div>
   </section>
 
-  <!-- 8 · Live demo -->
-  <section class="slide s-demo" aria-label="8 of 8: Time for a live demo">
+  <!-- 9 · Live demo -->
+  <section class="slide s-demo" aria-label="9 of 9: Time for a live demo">
     <div class="glow" aria-hidden="true"></div>
     <div class="ripples" aria-hidden="true"><i></i><i></i><i></i></div>
     <div class="countdown" aria-hidden="true"><span>3</span></div>
