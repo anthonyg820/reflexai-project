@@ -44,6 +44,9 @@ Update this CLAUDE.md in the same turn whenever something it describes changes, 
 - Rubrics belong to scenarios (`scenarios.rubric_id`). `SCORING_RUBRIC` is now the environment's *default*, used by scenarios without one and resolved strictly by the dashboard; that keeps Scenario A working. Rubrics are data in `apps/api/src/scoring/rubrics.ts` (starting score, passing score, point signals) and one engine scores them all. To add one, add its definition and its id in `KNOWN_RUBRICS` (`packages/config`); `scoring.test.ts` needs a passing and a failing example for each.
 - The Rubrics page (`/rubrics`, API `GET /api/rubrics` + `POST /api/rubrics/preview`) shows each rubric's rules, the scenarios that use it, and a live "Try it" box. It never throws on an unknown `SCORING_RUBRIC`; it shows a warning instead.
 
+## Interview presentation
+- `docs/presentation/` holds the animated summary slides: static HTML, CSS and JS, opened locally, with fonts bundled. It isn't part of any workflow (Release ignores `docs/**`). `links.js` there is git-ignored and holds local links, such as the Grafana URL.
+
 ## Review policy (Scenario B)
 - `scripts/review-policy/classify.mjs` decides `risk:low|medium|high` by path and dependency semver; the `review-policy` commit status is a required check (rulesets from `bootstrap/7-repo-rules.cmd`). New platform paths go in both `HIGH_RISK_PATHS` and `.github/CODEOWNERS`.
 - The demo PRs come from `demo/review-queue/*.patch`; CI checks they still apply, so update a patch when you change the code it touches.

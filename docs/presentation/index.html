@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RehearseAI: interview summary</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!--
+  Interview summary, shown before the live demo. Open this file directly in a browser
+  (no build step, no network needed). Keys: ← → / space / PageUp / PageDown, 1-6 to jump,
+  A to approve prod on slide 3, F for full screen. Links for the last slide: links.js
+  (copy links.example.js; links.js is git-ignored).
+-->
+<div class="viewport">
+<main class="stage" id="stage" data-slide="0" aria-roledescription="presentation">
+
+  <div class="brand" aria-hidden="true">
+    <span class="brand-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+    <span class="brand-name">RehearseAI</span>
+  </div>
+  <div class="chrome-top" id="counter" aria-live="polite">01 / 06</div>
+
+  <!-- 1 · Goal -->
+  <section class="slide s-goal is-active" aria-label="1 of 6: Goal">
+    <div class="orbit" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b><b></b></div>
+    <div class="content">
+      <p class="eyebrow reveal" style="--d:0">ReflexAI · Senior Platform Engineer · technical deep dive</p>
+      <h1 class="h-xl reveal" style="--d:1">A pipeline you can trust,<br>rehearsed end to end.</h1>
+      <p class="lede reveal" style="--d:2">I rebuilt a small version of your stack, reproduced both problems from the brief on demand, and fixed them with free and open-source tools.</p>
+      <ol class="goal-cards">
+        <li class="card reveal" style="--d:3"><span class="num">01 · Mirror</span><p>Your stack: TypeScript, Next.js, NestJS, Cloud Run, ECS, Terraform + Terragrunt, GitHub Actions, OpenTelemetry.</p></li>
+        <li class="card reveal" style="--d:4"><span class="num">02 · Reproduce</span><p>Both problems from the brief, on demand, from one button in GitHub Actions.</p></li>
+        <li class="card reveal" style="--d:5"><span class="num">03 · Fix</span><p>Guardrails in the pipeline itself, so the next incident can’t happen the same way.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 2 · Stack & architecture -->
+  <section class="slide s-stack" aria-label="2 of 6: Stack and architecture">
+    <header class="slide-head">
+      <div>
+        <p class="eyebrow reveal" style="--d:0">Stack &amp; architecture</p>
+        <h1 class="h-l reveal" style="--d:1">Same image, same config, two clouds.</h1>
+      </div>
+    </header>
+    <div class="arch">
+      <div class="wire w1" aria-hidden="true"></div>
+      <div class="wire w2" aria-hidden="true"></div>
+      <section class="arch-col" aria-label="Build and deliver">
+        <h2 class="reveal" style="--d:2">Build &amp; deliver</h2>
+        <div class="card node reveal" style="--d:3"><div class="t">GitHub</div><div class="d">pnpm + Turborepo monorepo, strict TypeScript</div></div>
+        <div class="card node hot reveal" style="--d:4"><div class="t">GitHub Actions</div><div class="d">CI, build once, promote, rollback, infra plan / apply, nightly drift check</div></div>
+        <div class="card node reveal" style="--d:5"><div class="t">Artifact Registry → ECR</div><div class="d">Copied by digest, never rebuilt</div></div>
+        <div class="card node dashed reveal" style="--d:6"><div class="t">Terraform + Terragrunt</div><div class="d">Service shells, IAM, secrets. Keyless login with GitHub OIDC.</div></div>
+      </section>
+      <section class="arch-col" aria-label="Run">
+        <h2 class="reveal" style="--d:3">Run</h2>
+        <div class="card node reveal" style="--d:5">
+          <div class="t">GCP Cloud Run <span class="tag">dev · uat · prod</span></div>
+          <div class="svc-grid">
+            <div class="svc"><b>web</b><span>Next.js 16</span></div>
+            <div class="svc"><b>api</b><span>NestJS 11</span></div>
+          </div>
+          <div class="d" style="margin-top:12px">Each with an OpenTelemetry Collector sidecar</div>
+        </div>
+        <div class="card node dashed reveal" style="--d:6"><div class="t">AWS ECS Fargate <span class="tag warn">built, not deployed</span></div><div class="d">Same images and specs. Waiting on an AWS account policy.</div></div>
+      </section>
+      <section class="arch-col" aria-label="Data and signals">
+        <h2 class="reveal" style="--d:4">Data &amp; signals</h2>
+        <div class="card node reveal" style="--d:6"><div class="t">Neon Postgres</div><div class="d">One branch per environment, Drizzle, expand-only migrations</div></div>
+        <div class="card node reveal" style="--d:7">
+          <div class="t">Grafana Cloud</div>
+          <div class="d">Dashboard, 5xx alert and deploy markers, all as code</div>
+          <div class="sig-stream" aria-hidden="true"><span>traces</span><span>metrics</span><span>logs</span></div>
+        </div>
+        <div class="card node reveal" style="--d:8"><div class="t">Secret Manager</div><div class="d">Database URLs and tokens. Config files hold no secrets.</div></div>
+      </section>
+    </div>
+  </section>
+
+  <!-- 3 · CI/CD -->
+  <section class="slide s-pipeline" aria-label="3 of 6: CI/CD from dev to UAT to prod">
+    <header class="slide-head">
+      <div>
+        <p class="eyebrow reveal" style="--d:0">CI/CD · dev → UAT → prod</p>
+        <h1 class="h-l reveal" style="--d:1">Build once. Promote the same bytes.</h1>
+      </div>
+      <button type="button" class="replay reveal" style="--d:2" id="pipe-replay">Replay</button>
+    </header>
+    <div class="card digest reveal" style="--d:2">
+      <span class="led" aria-hidden="true"></span>
+      <span class="mono" style="font-size:15px">api@sha256:7c1e…a94f</span>
+      <span class="muted" style="font-size:14px">one image, one digest, every stage</span>
+    </div>
+    <div class="track" id="track">
+      <div class="capsule" id="capsule" aria-hidden="true"><span>●</span> sha256:7c1e</div>
+      <ol class="stages" id="stages">
+        <li class="stage-box reveal" style="--d:3"><span class="step">PR</span><span class="name">CI</span><span class="text">Lint, types, tests, config check, image scan. Review policy labels risk.</span><span class="pill ok tag">every PR</span></li>
+        <li class="stage-box reveal" style="--d:4"><span class="step">merge</span><span class="name">Build once</span><span class="text">Images built and pushed one time. Digest recorded.</span><span class="pill ok tag">automatic</span></li>
+        <li class="stage-box reveal" style="--d:5"><span class="step">auto</span><span class="name">gcp-dev</span><span class="text">Deployed on every merge, smoke tested.</span><span class="pill ok tag">automatic</span></li>
+        <li class="stage-box reveal" style="--d:6"><span class="step">promote</span><span class="name">gcp-uat</span><span class="text">Takes exactly what dev is running.</span><span class="pill ok tag">one click</span></li>
+        <li class="stage-box gate reveal" style="--d:7" id="gate"><span class="step">approve</span><span class="name">Second person</span><span class="text">Required reviewer on the production environment.</span><button type="button" class="approve-btn" id="approve">Approve <kbd style="border-color:#1a1206">A</kbd></button></li>
+        <li class="stage-box reveal" style="--d:8"><span class="step">canary</span><span class="name">gcp-prod</span><span class="text">10% for 2 minutes, then 100%. AWS prod follows when enabled.</span><span class="canary-label" id="canary-label">waiting</span><div class="canary"><i id="canary"></i></div></li>
+      </ol>
+    </div>
+    <div class="facts">
+      <div class="reveal" style="--d:9"><b>No stage can be skipped</b><span>Promote reads the version running in the previous stage, not a version you type.</span></div>
+      <div class="reveal" style="--d:10"><b>Smoke tested before traffic</b><span>Every new revision is checked on its own preview URL at 0% traffic first.</span></div>
+      <div class="reveal" style="--d:11"><b>One-click rollback</b><span>Traffic moves back to the previous revision in seconds. Drift is checked nightly.</span></div>
+    </div>
+  </section>
+
+  <!-- 4 · Scenario A -->
+  <section class="slide s-a" aria-label="4 of 6: Right config, wrong image">
+    <header class="slide-head">
+      <div>
+        <p class="eyebrow warn reveal" style="--d:0">Problem 1</p>
+        <h1 class="h-l reveal" style="--d:1">Right config, wrong image.</h1>
+      </div>
+      <div class="seg reveal" style="--d:2" role="group" aria-label="View">
+        <button type="button" aria-pressed="false" data-mode="before">Before</button>
+        <button type="button" aria-pressed="true" data-mode="both">Side by side</button>
+        <button type="button" aria-pressed="false" data-mode="after">After</button>
+      </div>
+    </header>
+    <div class="compare" id="compare" data-mode="both">
+      <section class="panel before reveal" style="--d:3" aria-label="What happened">
+        <div class="panel-head"><h2>What happened</h2><span class="big-num warn" id="clock">00:00 of 500s</span></div>
+        <ol class="steps">
+          <li><span class="n">1</span><span>A release adds a new config value. Terraform applies it <strong>first</strong>.</span></li>
+          <li><span class="n">2</span><span>Cloud Run makes a revision: <strong>new config + old image</strong>.</span></li>
+          <li><span class="n">3</span><span>Old code can’t read the value. Every tenant gets errors until the new image lands.</span></li>
+          <li><span class="n">4</span><span>A person noticed first, not an alert.</span></li>
+          <li><span class="n">5</span><span>The image is rebuilt per environment, so prod isn’t what was tested.</span></li>
+        </ol>
+        <div class="timeline" aria-hidden="true"><i id="outage-bar"></i></div>
+        <div class="rain" id="rain" aria-hidden="true"></div>
+      </section>
+      <section class="panel after reveal" style="--d:4" aria-label="What we changed">
+        <div class="panel-head"><h2>What we changed</h2><span class="big-num ok">0 user errors</span></div>
+        <ul class="steps">
+          <li><svg class="ck" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span><strong>One release, one unit.</strong> Image digest, config and revision shape ship together as one Cloud Run revision.</span></li>
+          <li><svg class="ck" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Terraform stays out of the way.</strong> It owns the service shell and ignores the revision.</span></li>
+          <li><svg class="ck" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Config checked three times.</strong> In CI, when the release is rendered, and when the container starts.</span></li>
+          <li><svg class="ck" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Build once, promote by digest.</strong> The bytes tested in dev are the bytes in prod.</span></li>
+          <li><svg class="ck" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Machines notice first.</strong> Canary, a 5xx alert and deploy markers on the dashboard.</span></li>
+        </ul>
+        <div class="bounce-lane" aria-hidden="true"><span class="rev">rubric-c</span><span class="wall-label">startup check</span><span class="wall"></span></div>
+        <div class="guard" id="guard"><span class="pill">CI rejects</span><span class="pill">renderer rejects</span><span class="pill">startup probe rejects</span><span class="pill">alert fires</span></div>
+      </section>
+    </div>
+  </section>
+
+  <!-- 5 · Scenario B -->
+  <section class="slide s-b" aria-label="5 of 6: The review queue">
+    <header>
+      <p class="eyebrow warn reveal" style="--d:0">Problem 2</p>
+      <h1 class="h-l reveal" style="--d:1">The review queue.</h1>
+      <p class="lede reveal" style="--d:2; margin-top:12px; font-size:19px; max-width:1000px">Agents open more PRs, human review is the slowest step, and compliance still wants a second person on production changes. So humans should review less, and only where it matters.</p>
+    </header>
+    <div class="queue">
+      <section class="incoming reveal" style="--d:3" aria-label="Incoming pull requests">
+        <h2 class="col-label">Incoming</h2>
+        <div class="pr" data-lane="low"><b>chore(deps): typescript-eslint 8.72.2</b><span>renovate[bot]</span></div>
+        <div class="pr" data-lane="med"><b>fix(scoring): curly apostrophes</b><span>coding agent</span></div>
+        <div class="pr" data-lane="med"><b>feat(web): rubrics page</b><span>engineer</span></div>
+        <div class="pr" data-lane="high"><b>infra(gcp-uat): private api</b><span>engineer</span></div>
+        <div class="pr" data-lane="high"><b>chore(deps): eslint 10.0.0</b><span>renovate[bot] · major</span></div>
+        <div class="pr" data-lane="low"><b>docs: demo runbook</b><span>engineer</span></div>
+        <p class="inbox-zero" id="inbox-zero">Queue sorted. Humans only see 4 of 6.</p>
+      </section>
+      <div class="lanes">
+        <section class="lane low reveal" style="--d:4" aria-label="Low risk"><span class="pill low">risk:low</span><h2>No human</h2><p>Docs and patch or minor dev-tooling updates merge themselves once CI is green.</p><div class="slot" data-slot="low"></div></section>
+        <section class="lane med reveal" style="--d:5" aria-label="Medium risk"><span class="pill med">risk:medium</span><h2>One human</h2><p>App code, including agent-written fixes. Any one reviewer who isn’t the author. Bot approvals never count.</p><div class="slot" data-slot="med"></div></section>
+        <section class="lane high reveal" style="--d:6" aria-label="High risk"><span class="pill high">risk:high</span><h2>Code owner</h2><p>Infra, deploy specs, workflows, migrations, config schema and major upgrades.</p><div class="slot" data-slot="high"></div></section>
+      </div>
+    </div>
+    <div class="compliance reveal" style="--d:7">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+      <p><strong>The compliance second person approves the release:</strong> one approval on the exact build going to production, recorded by GitHub, instead of a human on every bot PR.</p>
+    </div>
+  </section>
+
+  <!-- 6 · Live demo -->
+  <section class="slide s-demo" aria-label="6 of 6: Time for a live demo">
+    <div class="glow" aria-hidden="true"></div>
+    <div class="ripples" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="countdown" aria-hidden="true"><span>3</span></div>
+    <p class="live-tag"><i aria-hidden="true"></i>Live · gcp-dev · Grafana Cloud</p>
+    <h1 class="demo-title" id="demo-title" aria-label="Time for a live demo."><span class="line" data-text="Time for a"></span><span class="line accent" data-text="live demo."></span></h1>
+    <ol class="beats">
+      <li><span class="mono">1</span>Break it the old way</li>
+      <li><span class="mono">2</span>Watch the guardrail hold</li>
+      <li><span class="mono">3</span>Rebuild drift</li>
+      <li><span class="mono">4</span>Sort the review queue</li>
+    </ol>
+    <div class="go">
+      <a class="go-main" id="link-app" href="#" target="_blank" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg>Start the demo</a>
+      <a class="go-sub" id="link-actions" href="#" target="_blank" rel="noopener">GitHub Actions</a>
+      <a class="go-sub" id="link-grafana" href="#" target="_blank" rel="noopener">Grafana</a>
+    </div>
+  </section>
+
+  <nav class="chrome-bottom" aria-label="Slides">
+    <div class="progress" aria-hidden="true"><div class="progress-bar" id="progress"></div></div>
+    <span class="hint"><kbd>←</kbd> <kbd>→</kbd> or <kbd>space</kbd> · <kbd>F</kbd> full screen</span>
+    <div class="dots" id="dots"></div>
+    <button type="button" class="nav-btn" id="prev" aria-label="Previous slide"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button type="button" class="nav-btn" id="next" aria-label="Next slide"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>
+  </nav>
+</main>
+</div>
+
+<script src="links.example.js"></script>
+<script src="links.js" onerror="void 0"></script>
+<script src="app.js"></script>
+</body>
+</html>
