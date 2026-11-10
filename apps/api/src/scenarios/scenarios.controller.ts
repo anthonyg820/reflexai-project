@@ -3,6 +3,7 @@ import { DIFFICULTIES, type CreateScenarioRequest, type Scenario } from "@rehear
 import { z } from "zod";
 import { ZodPipe } from "../common/zod.pipe";
 import { TenantId } from "../tenant/tenant.decorator";
+import { RUBRICS } from "../scoring/rubrics";
 import { ScenariosService } from "./scenarios.service";
 
 const createScenarioSchema = z.object({
@@ -14,6 +15,10 @@ const createScenarioSchema = z.object({
   channel: z.string().trim().max(60).optional(),
   skills: z.array(z.string().trim().min(1).max(40)).max(6).optional(),
   minutes: z.number().int().min(1).max(60).optional(),
+  rubricId: z
+    .string()
+    .refine((id) => id in RUBRICS, { message: "Unknown rubric" })
+    .optional(),
 }) satisfies z.ZodType<CreateScenarioRequest>;
 
 @Controller("scenarios")

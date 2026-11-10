@@ -25,6 +25,8 @@ export async function createScenario(formData: FormData) {
   if (skills.length) body.skills = skills;
   const minutes = Number(formData.get("minutes"));
   if (Number.isInteger(minutes) && minutes > 0) body.minutes = minutes;
+  const rubricId = String(formData.get("rubricId") ?? "");
+  if (rubricId) body.rubricId = rubricId;
   const scenario = await api<Scenario>("/scenarios", { method: "POST", body: JSON.stringify(body) });
   redirect(`/scenarios/${scenario.id}`);
 }

@@ -1,21 +1,28 @@
 diff --git a/apps/api/src/scoring/rubrics.ts b/apps/api/src/scoring/rubrics.ts
-index ddb56d7..eb1e942 100644
+index f51d5c3..7d7ef5e 100644
 --- a/apps/api/src/scoring/rubrics.ts
 +++ b/apps/api/src/scoring/rubrics.ts
-@@ -17,7 +17,10 @@ export interface RubricDefinition {
- const EMPATHY = ["understand", "sorry", "hear you", "that sounds", "makes sense", "feel", "thank you for"];
- const REFLECTIONS = ["it sounds like", "what i'm hearing", "so you're saying", "you feel", "you're feeling"];
+@@ -49,6 +49,9 @@ export interface RubricDefinition {
+ export const EMPATHY = ["understand", "sorry", "hear you", "that sounds", "makes sense", "feel", "thank you for"];
+ export const REFLECTIONS = ["it sounds like", "what i'm hearing", "so you're saying", "you feel", "you're feeling"];
  
--const countHits = (text: string, phrases: string[]) => phrases.filter((p) => text.includes(p)).length;
 +// Phones and some keyboards type curly apostrophes ("I’m"), which never matched
 +// phrases like "what i'm hearing". Normalise them before matching.
 +const normalise = (text: string) => text.replace(/[\u2018\u2019]/g, "'");
-+const countHits = (text: string, phrases: string[]) => phrases.filter((p) => normalise(text).includes(p)).length;
+ const countHits = (text: string, phrases: string[]) => phrases.filter((p) => text.includes(p)).length;
+ const words = (m: string) => m.trim().split(/\s+/).filter(Boolean).length;
  const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
+@@ -75,7 +78,7 @@ function count(signal: Signal, lower: string[]): number {
  
- export const RUBRICS: Record<string, RubricDefinition> = {
+ export function scoreWith(rubric: Pick<RubricDefinition, "base" | "signals">, { traineeMessages }: Transcript): number {
+   if (traineeMessages.length === 0) return 0;
+-  const lower = traineeMessages.map((m) => m.toLowerCase());
++  const lower = traineeMessages.map((m) => normalise(m.toLowerCase()));
+   return clamp(rubric.signals.reduce((total, s) => total + s.points * count(s, lower), rubric.base));
+ }
+ 
 diff --git a/apps/api/src/scoring/scoring.test.ts b/apps/api/src/scoring/scoring.test.ts
-index 3eaa5d1..1b5f92f 100644
+index 7dc60c3..2edc823 100644
 --- a/apps/api/src/scoring/scoring.test.ts
 +++ b/apps/api/src/scoring/scoring.test.ts
 @@ -32,6 +32,12 @@ describe("rubrics", () => {
@@ -30,4 +37,4 @@ index 3eaa5d1..1b5f92f 100644
 +  });
  });
  
- describe("nextPersonaLine", () => {
+ describe("every rubric", () => {

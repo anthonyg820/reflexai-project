@@ -6,7 +6,16 @@ import { z } from "zod";
  * so a config file that names a new rubric fails validation until the image
  * that ships that rubric is the one being deployed.
  */
-export const KNOWN_RUBRICS = ["rubric-a", "rubric-b"] as const;
+export const KNOWN_RUBRICS = [
+  "rubric-a",
+  "rubric-b",
+  "optimism",
+  "sales-persistence",
+  "de-escalation",
+  "clear-explanation",
+  "service-recovery",
+  "crisis-safety",
+] as const;
 export type Rubric = (typeof KNOWN_RUBRICS)[number];
 
 const bool = z

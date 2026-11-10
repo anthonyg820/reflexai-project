@@ -5,8 +5,15 @@ import { CONFIG, type ApiConfig } from "../config";
 import { DB, type Db } from "../db/db.module";
 import { messages, scenarios, sessions } from "../db/schema";
 import { criteria } from "../scoring/coaching";
-import { getRubric } from "../scoring/rubrics";
+import { RUBRICS, getRubric } from "../scoring/rubrics";
 import { toSessionSummary } from "../serializers";
+
+/** SQL: did this session reach the passing score of the rubric it was scored with? */
+const PASSED = sql`${sessions.score} >= (CASE ${sessions.rubric} ${sql.raw(
+  Object.values(RUBRICS)
+    .map((r) => `WHEN '${r.id}' THEN ${r.passingScore}`)
+    .join(" "),
+)} END)`;
 
 const round = (n: number | string | null) => (n === null ? null : Math.round(Number(n)));
 
@@ -18,8 +25,8 @@ export class StatsService {
   ) {}
 
   async get(tenantId: string): Promise<Stats> {
-    // Every dashboard load resolves the active rubric, so in lazy mode a bad
-    // SCORING_RUBRIC breaks the home page for every tenant — as in Scenario A.
+    // Every dashboard load resolves the environment's default rubric, so in lazy
+    // mode a bad SCORING_RUBRIC breaks the home page for every tenant (Scenario A).
     const rubric = getRubric(this.config.SCORING_RUBRIC);
 
     const byScenario = await this.db
@@ -28,15 +35,16 @@ export class StatsService {
         title: scenarios.title,
         persona: scenarios.persona,
         difficulty: scenarios.difficulty,
+        rubricId: scenarios.rubricId,
         sessions: sql<number>`count(${sessions.id})::int`,
         completed: sql<number>`count(${sessions.id}) filter (where ${sessions.status} = 'completed')::int`,
-        passed: sql<number>`count(${sessions.id}) filter (where ${sessions.score} >= ${rubric.passingScore})::int`,
+        passed: sql<number>`count(${sessions.id}) filter (where ${PASSED})::int`,
         averageScore: sql<string | null>`avg(${sessions.score})`,
       })
       .from(scenarios)
       .leftJoin(sessions, eq(sessions.scenarioId, scenarios.id))
       .where(eq(scenarios.tenantId, tenantId))
-      .groupBy(scenarios.id, scenarios.title, scenarios.persona, scenarios.difficulty)
+      .groupBy(scenarios.id, scenarios.title, scenarios.persona, scenarios.difficulty, scenarios.rubricId)
       .orderBy(scenarios.title);
 
     const recentRows = await this.db
@@ -51,7 +59,7 @@ export class StatsService {
       .select({
         sessions: sql<number>`count(*)::int`,
         completed: sql<number>`count(*) filter (where ${sessions.status} = 'completed')::int`,
-        passed: sql<number>`count(*) filter (where ${sessions.score} >= ${rubric.passingScore})::int`,
+        passed: sql<number>`count(*) filter (where ${PASSED})::int`,
         averageScore: sql<string | null>`avg(${sessions.score})`,
       })
       .from(sessions)
@@ -69,7 +77,12 @@ export class StatsService {
         passRate: pct(totals?.passed ?? 0, totals?.completed ?? 0),
       },
       weakestSkill: await this.weakestSkill(tenantId),
-      byScenario: byScenario.map(({ passed, ...r }) => ({ ...r, averageScore: round(r.averageScore), passRate: pct(passed, r.completed) })),
+      byScenario: byScenario.map(({ passed, rubricId, ...r }) => ({
+        ...r,
+        rubricName: RUBRICS[rubricId ?? rubric.id]?.name ?? rubricId ?? rubric.id,
+        averageScore: round(r.averageScore),
+        passRate: pct(passed, r.completed),
+      })),
       recent: recentRows.map((r) => toSessionSummary(r.session, r)),
     };
   }

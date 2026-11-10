@@ -1,11 +1,13 @@
 import type { Message, Scenario, SessionSummary } from "@rehearse/types";
 import type { messages, scenarios, sessions } from "./db/schema";
+import { RUBRICS } from "./scoring/rubrics";
 
 type ScenarioRow = typeof scenarios.$inferSelect;
 type SessionRow = typeof sessions.$inferSelect;
 type MessageRow = typeof messages.$inferSelect;
 
-export const toScenario = (r: ScenarioRow): Scenario => ({
+/** `defaultRubric` is the environment's SCORING_RUBRIC, used when the scenario has none. */
+export const toScenario = (r: ScenarioRow, defaultRubric: string): Scenario => ({
   id: r.id,
   title: r.title,
   persona: r.persona,
@@ -15,6 +17,9 @@ export const toScenario = (r: ScenarioRow): Scenario => ({
   channel: r.channel,
   skills: r.skills,
   minutes: r.minutes,
+  rubricId: r.rubricId ?? defaultRubric,
+  rubricName: RUBRICS[r.rubricId ?? defaultRubric]?.name ?? r.rubricId ?? defaultRubric,
+  rubricExplicit: r.rubricId !== null,
   createdAt: r.createdAt.toISOString(),
 });
 
@@ -24,6 +29,7 @@ export const toSessionSummary = (r: SessionRow, scenario: { title: string; perso
   scenarioTitle: scenario.title,
   persona: scenario.persona,
   status: r.status,
+  passed: r.score === null || !r.rubric || !RUBRICS[r.rubric] ? null : r.score >= RUBRICS[r.rubric]!.passingScore,
   score: r.score,
   rubric: r.rubric,
   createdAt: r.createdAt.toISOString(),

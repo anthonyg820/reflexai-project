@@ -48,17 +48,45 @@ describe.skipIf(!url)("API (e2e)", () => {
     const other = await request(app.getHttpServer()).get("/api/scenarios").set("x-tenant-id", "northwind-health").expect(200);
     const harbor = await request(app.getHttpServer()).get("/api/scenarios").set("x-tenant-id", "harbor-bank").expect(200);
     expect(acme.body).toHaveLength(5);
-    expect(other.body).toHaveLength(2);
-    expect(harbor.body).toHaveLength(2);
+    expect(other.body).toHaveLength(5);
+    expect(harbor.body).toHaveLength(5);
     expect(acme.body.find((s: { title: string }) => s.title === "Caller in acute crisis")).toMatchObject({
       difficulty: "advanced",
       skills: ["Risk assessment", "Safety planning"],
+      rubricId: "crisis-safety",
+      rubricName: "Crisis safety",
+      rubricExplicit: true,
     });
     expect(acme.body[0].id).not.toBe(other.body[0].id);
   });
 
   it("validates scenario input", async () => {
     await request(app.getHttpServer()).post("/api/scenarios").set("x-tenant-id", T).send({ title: "x" }).expect(400);
+    await request(app.getHttpServer())
+      .post("/api/scenarios")
+      .set("x-tenant-id", T)
+      .send({ title: "Bad rubric", persona: "P", description: "d", personaLines: ["Hi"], rubricId: "rubric-c" })
+      .expect(400);
+  });
+
+  it("scores a session with its scenario's rubric", async () => {
+    const http = app.getHttpServer();
+    const scenario = await request(http)
+      .post("/api/scenarios")
+      .set("x-tenant-id", "harbor-bank")
+      .send({ title: "Upsell test", persona: "Pat", description: "d", personaLines: ["Hi", "Hmm"], rubricId: "sales-persistence" })
+      .expect(201);
+    expect(scenario.body).toMatchObject({ rubricId: "sales-persistence", rubricName: "Sales persistence", rubricExplicit: true });
+    const session = await request(http).post("/api/sessions").set("x-tenant-id", "harbor-bank").send({ scenarioId: scenario.body.id }).expect(201);
+    expect(session.body).toMatchObject({ rubricName: "Sales persistence", passingScore: 70 });
+    await request(http)
+      .post(`/api/sessions/${session.body.id}/messages`)
+      .set("x-tenant-id", "harbor-bank")
+      .send({ content: "That's fair. What if we could save you money? Could we schedule a call next week?" })
+      .expect(201);
+    const ended = await request(http).post(`/api/sessions/${session.body.id}/end`).set("x-tenant-id", "harbor-bank").expect(200);
+    expect(ended.body.rubric).toBe("sales-persistence");
+    expect(ended.body.passed).toEqual(expect.any(Boolean));
   });
 
   it("runs a full session: create scenario, chat, end, score, stats", async () => {
@@ -84,7 +112,7 @@ describe.skipIf(!url)("API (e2e)", () => {
 
     const ended = await request(http).post(`/api/sessions/${session.body.id}/end`).set("x-tenant-id", T).expect(200);
     expect(ended.body.status).toBe("completed");
-    expect(ended.body.rubric).toBe("rubric-a");
+    expect(ended.body.rubric).toBe("rubric-a"); // no rubric on the scenario: the environment default
     expect(ended.body.score).toBeGreaterThan(0);
 
     const detail = await request(http).get(`/api/sessions/${session.body.id}`).set("x-tenant-id", T).expect(200);
@@ -108,7 +136,11 @@ describe.skipIf(!url)("API (e2e)", () => {
     expect(stats.body.totals.passRate).toEqual(expect.any(Number));
     const rubrics = await request(http).get("/api/rubrics").set("x-tenant-id", T).expect(200);
     expect(rubrics.body).toMatchObject({ configured: "rubric-a", configuredKnown: true });
-    expect(rubrics.body.rubrics.find((r: { id: string }) => r.id === "rubric-a")).toMatchObject({ active: true, sessions: 1 });
+    expect(rubrics.body.rubrics).toHaveLength(8);
+    const a = rubrics.body.rubrics.find((r: { id: string }) => r.id === "rubric-a");
+    expect(a).toMatchObject({ isDefault: true, sessions: 1 });
+    // The test scenario has no rubric of its own, so it uses the default.
+    expect(a.scenarios.map((s: { title: string }) => s.title)).toContain("Test scenario");
     expect(rubrics.body.criteria).toHaveLength(4);
 
     const preview = await request(http)
@@ -116,7 +148,8 @@ describe.skipIf(!url)("API (e2e)", () => {
       .set("x-tenant-id", T)
       .send({ messages: ["I'm so sorry, that sounds hard.", "What has been the hardest part?"] })
       .expect(200);
-    expect(preview.body.scores.map((s: { id: string }) => s.id).sort()).toEqual(["rubric-a", "rubric-b"]);
+    expect(preview.body.scores).toHaveLength(8);
+    expect(preview.body.scores.find((s: { id: string }) => s.id === "rubric-a")).toMatchObject({ passingScore: 70 });
     expect(preview.body.criteria).toHaveLength(4);
     expect(stats.body.weakestSkill).toMatchObject({ name: expect.any(String), average: expect.any(Number) });
   });

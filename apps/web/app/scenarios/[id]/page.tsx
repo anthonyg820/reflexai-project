@@ -27,7 +27,11 @@ export default async function ScenarioPage({ params }: { params: Promise<{ id: s
           <span className="inline-flex flex-wrap items-center gap-2">
             <DifficultyBadge difficulty={scenario.difficulty} />
             {scenario.channel && <span>{scenario.channel}</span>}
-            <span>· ~{scenario.minutes} min</span>
+            <span>· ~{scenario.minutes} min ·</span>
+            <Link href={`/rubrics#${scenario.rubricId}`} className="font-medium text-accent hover:text-accent-strong">
+              {scenario.rubricName} rubric
+            </Link>
+            {!scenario.rubricExplicit && <span>(environment default)</span>}
           </span>
         }
         action={

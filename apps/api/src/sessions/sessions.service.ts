@@ -40,7 +40,7 @@ export class SessionsService {
     const lastPersona = rows.filter((m) => m.role === "persona").at(-1)?.content;
     // Look the rubric up without throwing: only scoring (end) and the dashboard
     // resolve the configured rubric strictly (Scenario A).
-    const rubric = RUBRICS[session.rubric ?? this.config.SCORING_RUBRIC];
+    const rubric = RUBRICS[session.rubric ?? scenario.rubricId ?? this.config.SCORING_RUBRIC];
     const history = await this.db
       .select({ id: sessions.id, score: sessions.score, endedAt: sessions.endedAt })
       .from(sessions)
@@ -92,8 +92,9 @@ export class SessionsService {
     const { session, scenario } = await this.load(tenantId, id);
     if (session.status !== "active") return toSessionSummary(session, scenario);
 
-    // In lazy mode an unknown rubric throws here -> HTTP 500 (Scenario A).
-    const rubric = getRubric(this.config.SCORING_RUBRIC);
+    // The scenario's rubric, else the environment default. In lazy mode an
+    // unknown default throws here -> HTTP 500 (Scenario A).
+    const rubric = getRubric(scenario.rubricId ?? this.config.SCORING_RUBRIC);
     const traineeMessages = (
       await this.db
         .select({ content: messages.content })

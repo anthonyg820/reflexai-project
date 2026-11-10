@@ -1,4 +1,5 @@
 import type { Rubrics } from "@rehearse/types";
+import Link from "next/link";
 import { RubricPlayground } from "@/components/rubric-playground";
 import { Bar, PageTitle } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -11,32 +12,28 @@ export default async function RubricsPage() {
         title="Rubrics"
         subtitle={
           <>
-            How sessions are scored. Each environment scores with one rubric, set by <code className="rounded bg-sunken px-1.5 py-0.5 text-[13px]">SCORING_RUBRIC</code>{" "}
-            in its runtime config.
+            Each scenario is scored with its own rubric. Scenarios without one use the environment&apos;s default, set by{" "}
+            <code className="rounded bg-sunken px-1.5 py-0.5 text-[13px]">SCORING_RUBRIC</code> in its runtime config.
           </>
         }
       />
 
       {!data.configuredKnown && (
         <p role="alert" className="mb-6 rounded-[14px] border border-warn bg-warn-soft px-5 py-4 text-warn">
-          This environment is configured with <strong>{data.configured}</strong>, which this release doesn&apos;t know. Sessions can&apos;t be scored until the
-          config or the release is fixed.
+          This environment&apos;s default rubric is configured as <strong>{data.configured}</strong>, which this release doesn&apos;t know. Scenarios
+          without their own rubric can&apos;t be scored, and the dashboard can&apos;t load, until the config or the release is fixed.
         </p>
       )}
 
       <div className="grid gap-5 lg:grid-cols-2">
         {data.rubrics.map((r) => (
-          <article key={r.id} className={`flex flex-col gap-4 rounded-[18px] border bg-card p-6 ${r.active ? "border-accent" : "border-line"}`}>
+          <article id={r.id} key={r.id} className="flex scroll-mt-6 flex-col gap-4 rounded-[18px] border border-line bg-card p-6 target:border-accent">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="text-xl font-semibold">{r.name}</h2>
                 <p className="mt-0.5 font-mono text-xs text-muted">{r.id}</p>
               </div>
-              {r.active ? (
-                <span className="rounded-full bg-accent-soft px-3 py-1 text-[13px] font-semibold text-accent-strong">Active in this environment</span>
-              ) : (
-                <span className="rounded-full bg-sunken px-3 py-1 text-[13px] text-ink-soft">Available</span>
-              )}
+              {r.isDefault && <span className="rounded-full bg-accent-soft px-3 py-1 text-[13px] font-semibold text-accent-strong">Environment default</span>}
             </div>
             <p className="leading-relaxed text-ink-soft">{r.description}</p>
 
@@ -56,6 +53,23 @@ export default async function RubricsPage() {
                   </tr>
                 </tbody>
               </table>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold">Scenarios using it</h3>
+              {r.scenarios.length === 0 ? (
+                <p className="mt-1 text-sm text-muted">None in this organization yet.</p>
+              ) : (
+                <ul className="mt-2 flex flex-wrap gap-1.5">
+                  {r.scenarios.map((s) => (
+                    <li key={s.id}>
+                      <Link href={`/scenarios/${s.id}`} className="inline-block rounded-full bg-sunken px-2.5 py-1 text-xs text-ink-soft hover:text-accent">
+                        {s.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <dl className="mt-auto grid grid-cols-3 gap-3 border-t border-line-soft pt-4">

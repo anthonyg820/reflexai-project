@@ -1,10 +1,13 @@
-import { DIFFICULTIES } from "@rehearse/types";
+import { DIFFICULTIES, type Rubrics } from "@rehearse/types";
 import { createScenario } from "@/app/actions";
 import { Card, PageTitle, buttonClass, difficultyLabel } from "@/components/ui";
+import { api } from "@/lib/api";
 
 const input = "mt-1.5 w-full rounded-[10px] border border-line-strong bg-paper px-3.5 py-2.5 text-ink outline-none focus:border-accent";
 
-export default function NewScenarioPage() {
+export default async function NewScenarioPage() {
+  const { rubrics } = await api<Rubrics>("/rubrics");
+  const fallback = rubrics.find((r) => r.isDefault);
   return (
     <>
       <PageTitle title="New scenario" subtitle="Write the persona's side of the conversation, one line per turn." />
@@ -38,6 +41,17 @@ export default function NewScenarioPage() {
               <input name="minutes" type="number" min={1} max={60} defaultValue={10} className={input} />
             </label>
           </div>
+          <label className="block font-medium">
+            Rubric <span className="font-normal text-muted">(what this scenario is scored on)</span>
+            <select name="rubricId" defaultValue="" className={input}>
+              <option value="">Environment default{fallback ? ` (${fallback.name})` : ""}</option>
+              {rubrics.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}: pass at {r.passingScore}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="block font-medium">
             Skills <span className="font-normal text-muted">(comma separated, up to 6)</span>
             <input name="skills" placeholder="e.g. Rapport, Open questions" className={input} />

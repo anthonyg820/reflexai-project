@@ -1,4 +1,5 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { CONFIG, type ApiConfig } from "../config";
 import type { CreateScenarioRequest, Scenario } from "@rehearse/types";
 import { and, desc, eq } from "drizzle-orm";
 import { DB, type Db } from "../db/db.module";
@@ -7,7 +8,12 @@ import { toScenario } from "../serializers";
 
 @Injectable()
 export class ScenariosService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    @Inject(CONFIG) private readonly config: ApiConfig,
+  ) {}
+
+  private map = (row: Parameters<typeof toScenario>[0]) => toScenario(row, this.config.SCORING_RUBRIC);
 
   async list(tenantId: string): Promise<Scenario[]> {
     const rows = await this.db
@@ -15,7 +21,7 @@ export class ScenariosService {
       .from(scenarios)
       .where(eq(scenarios.tenantId, tenantId))
       .orderBy(desc(scenarios.createdAt));
-    return rows.map(toScenario);
+    return rows.map(this.map);
   }
 
   async get(tenantId: string, id: string): Promise<Scenario> {
@@ -24,7 +30,7 @@ export class ScenariosService {
       .from(scenarios)
       .where(and(eq(scenarios.tenantId, tenantId), eq(scenarios.id, id)));
     if (!row) throw new NotFoundException("Scenario not found");
-    return toScenario(row);
+    return this.map(row);
   }
 
   async create(tenantId: string, input: CreateScenarioRequest): Promise<Scenario> {
@@ -32,6 +38,6 @@ export class ScenariosService {
       .insert(scenarios)
       .values({ tenantId, ...input })
       .returning();
-    return toScenario(row!);
+    return this.map(row!);
   }
 }

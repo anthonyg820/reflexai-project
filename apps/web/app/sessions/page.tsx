@@ -25,7 +25,7 @@ export default async function SessionsPage() {
                 {s.status === "active" ? (
                   <span className="text-xs text-muted">in progress</span>
                 ) : (
-                  <ScoreBadge score={s.score} passing={stats.rubric.passingScore} />
+                  <ScoreBadge score={s.score} passed={s.passed} />
                 )}
               </Link>
             </li>

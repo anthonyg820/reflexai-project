@@ -5,14 +5,14 @@ import { api, currentTenant } from "@/lib/api";
 
 export default async function DashboardPage() {
   const [stats, tenant] = await Promise.all([api<Stats>("/stats"), currentTenant()]);
-  const { totals, rubric, weakestSkill } = stats;
+  const { totals, weakestSkill } = stats;
   const tenantName = TENANTS.find((t) => t.id === tenant)?.name ?? tenant;
   const now = Date.now();
 
   return (
     <>
       <PageTitle
-        eyebrow={`${tenantName} · scored with ${rubric.name}`}
+        eyebrow={tenantName}
         title="Dashboard"
         action={
           <>
@@ -29,7 +29,7 @@ export default async function DashboardPage() {
 
       <section aria-label="Key numbers" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat label="Sessions completed" value={totals.completed} hint={`${totals.sessions} started`} />
-        <Stat label="Average score" value={totals.averageScore ?? "—"} hint={`Passing score ${rubric.passingScore}`} />
+        <Stat label="Average score" value={totals.averageScore ?? "—"} hint="Across all rubrics" />
         <Stat label="Pass rate" value={totals.passRate === null ? "—" : `${totals.passRate}%`}>
           <Bar value={totals.passRate ?? 0} good={(totals.passRate ?? 0) >= 50} height={6} />
         </Stat>
@@ -67,7 +67,9 @@ export default async function DashboardPage() {
                       <Link href={`/scenarios/${s.scenarioId}`} className="font-medium hover:text-accent">
                         {s.title}
                       </Link>
-                      <div className="mt-0.5 text-xs text-muted">{s.persona}</div>
+                      <div className="mt-0.5 text-xs text-muted">
+                        {s.persona} · {s.rubricName}
+                      </div>
                     </td>
                     <td className="px-3 py-3.5">
                       <DifficultyBadge difficulty={s.difficulty} />
@@ -116,7 +118,7 @@ export default async function DashboardPage() {
                     {s.status === "active" ? (
                       <span className="text-xs text-muted">in progress</span>
                     ) : (
-                      <ScoreBadge score={s.score} passing={rubric.passingScore} />
+                      <ScoreBadge score={s.score} passed={s.passed} />
                     )}
                   </Link>
                 </li>
