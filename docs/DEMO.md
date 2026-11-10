@@ -45,14 +45,15 @@ Slides 4–5, `docs/PLAN.md` §3.2, or the last **Release** and **Promote** runs
    errors for every tenant, and about 2 minutes in **Rehearse API 5xx ratio** fires. The alert
    noticed, not a person.
 5. Job summary: the timeline (config pushed → new revision took traffic → first user error) and
-   the OK/error counts.
+   the OK/error counts. Rehearsal on 2026-11-10: first user error after 18 s, all traffic on the
+   bad revision after 29 s, **10 OK / 189 errors** over 4 minutes.
 6. The `recover` job then redeploys the last real release through the normal path, like the new
    image finally arriving. The whole run takes about as long as their outage did.
 
 ### 2b. Same change, guarded (`mode=guarded`, ~5 min)
 1. Run `mode=guarded`: the same config with startup validation (the default).
-2. Summary: **all requests OK**; the newest revision is `Ready: False`, 100% of traffic stays on the
-   old revision. Logs show `Invalid configuration … SCORING_RUBRIC`.
+2. Summary: **all requests OK** (rehearsal: 189 OK / 0 errors); the newest revision is
+   `Ready: False`, 100% of traffic stays on the old revision. Logs show `Invalid configuration … SCORING_RUBRIC`.
 3. Point out the earlier gates: CI (`pnpm validate:config`) and the release renderer reject
    `rubric-c` for this commit, so a real release never gets this far.
 
@@ -70,6 +71,10 @@ Slides 4–5, `docs/PLAN.md` §3.2, or the last **Release** and **Promote** runs
 
 ## 3. Scenario B: the review queue
 
+If asked about the "Approve workflows to run" banner: GitHub won't let one workflow silently start
+another, so a bot can't escalate its own permissions. A real Renovate install is a GitHub App, so
+its PRs trigger CI normally.
+
 ### 3a. Open the queue (`mode=open`, ~5 min until the low-risk PR merges)
 1. Run **Demo: Scenario B**, `mode=open`. It copies `main` to `demo/queue-base` and opens three PRs:
    | PR | Policy says | What happens |
@@ -78,10 +83,14 @@ Slides 4–5, `docs/PLAN.md` §3.2, or the last **Release** and **Promote** runs
    | Agent-written bug fix + test (`agent` label) | `risk:medium` | Waits for one human approval; bot approvals never count |
    | Infra change (UAT api becomes private) | `risk:high` | Waits for a platform code owner (ruleset + policy) |
 2. Open the PR list: risk labels, the `review-policy` status with its reason, CI running.
+   Ignore the **"Approve workflows to run"** banner: GitHub holds `pull_request` runs on PRs opened
+   by `GITHUB_TOKEN`, so the demo starts CI itself and reports the result to each PR as the
+   required `Lint, typecheck, test, build` status (`report-to-pr` in `ci.yml`). Don't approve them.
    Slide 8 has the rules behind each label (when it runs, what it reads, first match wins).
 3. A few minutes later the low-risk PR is merged by auto-merge.
-4. Approve the agent fix. The **Review policy** workflow re-runs, the status turns green, and you
-   can merge it. Approve the infra PR the same way (you're the code owner).
+4. Approve the agent fix (Files changed → Review changes → Approve). The **Review policy**
+   workflow re-runs, the status turns green, and you can merge it. Approve the infra PR the same
+   way (you're the code owner). Don't use the admin bypass here: it skips what you're showing.
 
 ### 3b. Talking points
 - The policy is code (`scripts/review-policy/classify.mjs`, unit tested). Rules are by path and
@@ -106,3 +115,13 @@ branch; `main` is never touched.
 ## Local fallback (no internet)
 `make scenario-a` / `.\make scenario-a` shows Scenario A in 10 seconds on your laptop, and
 `make test-policy` runs the review-policy tests.
+
+## 5. Things that broke during rehearsal (good interview stories)
+- **gcloud flag order (#15):** gcloud 570 on the runners started treating every flag after
+  `--container` as a container flag, so the demo's config change failed. A tool changed under an
+  unchanged pipeline.
+- **Ruleset defaults (#16, #21):** required checks were enforced on branch *creation*, and GitHub's
+  newer `require_extra_approval_for_unattributed_changes` defaulted to on, so bot PRs could never
+  use the low-risk lane. Both are now set explicitly in `bootstrap/repo-rules.ps1`.
+- **Dispatched CI didn't count (#25):** checks from a `workflow_dispatch` run aren't linked to the
+  PR; a commit status is. Platform defaults drift, so pin and set them in code.
