@@ -53,6 +53,7 @@ Update this CLAUDE.md in the same turn whenever something it describes changes, 
 
 ## Gotchas
 - Health endpoint is `/health`, never `/healthz`: Cloud Run's front end reserves paths ending in `z` and returns its own 404.
+- Neon suspends idle computes (free plan: after 5 minutes) and ends every connection with `57P01`. Always create pools with `createPool` (`apps/api/src/db/db.module.ts`). Its `ResilientPool` handles idle-connection errors, which would otherwise crash the process, and retries a single statement once on a dropped connection.
 
 ## Rules that keep Scenario A fixed (don't break these)
 - Build each image once per commit; deploy only by digest (`…@sha256:`). Never rebuild per environment.

@@ -153,4 +153,15 @@ describe.skipIf(!url)("API (e2e)", () => {
     expect(preview.body.criteria).toHaveLength(4);
     expect(stats.body.weakestSkill).toMatchObject({ name: expect.any(String), average: expect.any(Number) });
   });
+
+  it("survives the database dropping every connection (Neon suspending an idle compute)", async () => {
+    const http = app.getHttpServer();
+    await request(http).get("/api/stats").set("x-tenant-id", T).expect(200);
+    const admin = new Pool({ connectionString: url });
+    await admin.query("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid()");
+    await admin.end();
+    await new Promise((r) => setTimeout(r, 200));
+    // Before the fix the process crashed on the unhandled pool 'error' event.
+    for (let i = 0; i < 3; i++) await request(http).get("/api/stats").set("x-tenant-id", T).expect(200);
+  });
 });
