@@ -1,7 +1,7 @@
 import type { SessionDetail } from "@rehearse/types";
 import { notFound } from "next/navigation";
 import { Chat } from "@/components/chat";
-import { PageTitle } from "@/components/ui";
+import { Scorecard } from "@/components/scorecard";
 import { ApiError, api } from "@/lib/api";
 
 export default async function SessionPage({ params }: { params: Promise<{ id: string }> }) {
@@ -13,10 +13,5 @@ export default async function SessionPage({ params }: { params: Promise<{ id: st
     if (err instanceof ApiError && (err.status === 404 || err.status === 400)) notFound();
     throw err;
   }
-  return (
-    <>
-      <PageTitle title={session.scenarioTitle} subtitle={`Talking with ${session.persona}`} />
-      <Chat initial={session} />
-    </>
-  );
+  return session.status === "completed" ? <Scorecard session={session} /> : <Chat initial={session} />;
 }

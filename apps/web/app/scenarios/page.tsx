@@ -1,30 +1,23 @@
-import type { Scenario } from "@rehearse/types";
-import Link from "next/link";
-import { ButtonLink, PageTitle } from "@/components/ui";
+import type { Scenario, Stats } from "@rehearse/types";
+import { ScenarioLibrary } from "@/components/scenario-library";
+import { ButtonLink, Icon, PageTitle } from "@/components/ui";
 import { api } from "@/lib/api";
 
 export default async function ScenariosPage() {
-  const scenarios = await api<Scenario[]>("/scenarios");
+  const [scenarios, stats] = await Promise.all([api<Scenario[]>("/scenarios"), api<Stats>("/stats")]);
   return (
     <>
       <PageTitle
-        title="Scenarios"
-        subtitle="Roleplays your trainees can practice."
-        action={<ButtonLink href="/scenarios/new">New scenario</ButtonLink>}
+        title="Scenario library"
+        subtitle="Roleplays your team can practice. Each one names the skills it trains."
+        action={
+          <ButtonLink href="/scenarios/new">
+            <Icon name="plus" size={16} />
+            New scenario
+          </ButtonLink>
+        }
       />
-      <div className="grid gap-4 md:grid-cols-2">
-        {scenarios.map((s) => (
-          <Link
-            key={s.id}
-            href={`/scenarios/${s.id}`}
-            className="rounded-xl border border-line bg-card p-5 transition hover:border-accent"
-          >
-            <div className="text-xs uppercase tracking-wide text-muted">{s.persona}</div>
-            <h2 className="mt-1 font-serif text-xl">{s.title}</h2>
-            <p className="mt-2 line-clamp-2 text-sm text-muted">{s.description}</p>
-          </Link>
-        ))}
-      </div>
+      <ScenarioLibrary scenarios={scenarios} rubricName={stats.rubric.name} />
     </>
   );
 }

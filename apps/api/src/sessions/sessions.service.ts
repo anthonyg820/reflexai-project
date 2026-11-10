@@ -1,12 +1,13 @@
 import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import type { Message, PostMessageResponse, SessionDetail, SessionSummary } from "@rehearse/types";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, isNotNull } from "drizzle-orm";
 import { CONFIG, type ApiConfig } from "../config";
 import { DB, type Db } from "../db/db.module";
 import { messages, scenarios, sessions } from "../db/schema";
 import { sessionScore, sessionsCompleted, sessionsStarted } from "../metrics";
 import { nextPersonaLine } from "../scoring/persona";
-import { getRubric } from "../scoring/rubrics";
+import { coach, feedback } from "../scoring/coaching";
+import { RUBRICS, getRubric } from "../scoring/rubrics";
 import { toMessage, toSessionSummary } from "../serializers";
 
 @Injectable()
@@ -35,17 +36,42 @@ export class SessionsService {
   async get(tenantId: string, id: string): Promise<SessionDetail> {
     const { session, scenario } = await this.load(tenantId, id);
     const rows = await this.db.select().from(messages).where(eq(messages.sessionId, id)).orderBy(asc(messages.createdAt));
-    return { ...toSessionSummary(session, scenario.title), persona: scenario.persona, messages: rows.map(toMessage) };
+    const trainee = rows.filter((m) => m.role === "trainee").map((m) => m.content);
+    const lastPersona = rows.filter((m) => m.role === "persona").at(-1)?.content;
+    // Look the rubric up without throwing: only scoring (end) and the dashboard
+    // resolve the configured rubric strictly (Scenario A).
+    const rubric = RUBRICS[session.rubric ?? this.config.SCORING_RUBRIC];
+    const history = await this.db
+      .select({ id: sessions.id, score: sessions.score, endedAt: sessions.endedAt })
+      .from(sessions)
+      .where(and(eq(sessions.tenantId, tenantId), eq(sessions.scenarioId, scenario.id), isNotNull(sessions.score)))
+      .orderBy(desc(sessions.endedAt))
+      .limit(5);
+    return {
+      ...toSessionSummary(session, scenario),
+      difficulty: scenario.difficulty,
+      channel: scenario.channel,
+      messages: rows.map(toMessage),
+      passingScore: rubric?.passingScore ?? null,
+      rubricName: rubric?.name ?? null,
+      coach: coach(trainee, scenario.persona, lastPersona),
+      feedback: session.status === "completed" ? feedback(trainee, scenario.persona) : null,
+      history: history.reverse().map((h) => ({ id: h.id, score: h.score!, endedAt: (h.endedAt ?? new Date()).toISOString() })),
+    };
   }
 
   async postMessage(tenantId: string, id: string, content: string): Promise<PostMessageResponse> {
     const { session, scenario } = await this.load(tenantId, id);
     if (session.status !== "active") throw new ConflictException("Session already ended");
 
-    const traineeTurns = (
-      await this.db.select({ id: messages.id }).from(messages).where(and(eq(messages.sessionId, id), eq(messages.role, "trainee")))
-    ).length;
-    const reply = nextPersonaLine(scenario.personaLines, traineeTurns);
+    const previous = (
+      await this.db
+        .select({ content: messages.content })
+        .from(messages)
+        .where(and(eq(messages.sessionId, id), eq(messages.role, "trainee")))
+        .orderBy(asc(messages.createdAt))
+    ).map((m) => m.content);
+    const reply = nextPersonaLine(scenario.personaLines, previous.length);
 
     return this.db.transaction(async (tx) => {
       const [trainee] = await tx.insert(messages).values({ sessionId: id, role: "trainee", content }).returning();
@@ -58,13 +84,13 @@ export class SessionsService {
           .returning();
         persona = toMessage(p!);
       }
-      return { trainee: toMessage(trainee!), persona };
+      return { trainee: toMessage(trainee!), persona, coach: coach([...previous, content], scenario.persona, reply ?? undefined) };
     });
   }
 
   async end(tenantId: string, id: string): Promise<SessionSummary> {
     const { session, scenario } = await this.load(tenantId, id);
-    if (session.status !== "active") return toSessionSummary(session, scenario.title);
+    if (session.status !== "active") return toSessionSummary(session, scenario);
 
     // In lazy mode an unknown rubric throws here -> HTTP 500 (Scenario A).
     const rubric = getRubric(this.config.SCORING_RUBRIC);
@@ -85,7 +111,7 @@ export class SessionsService {
     const attrs = { "tenant.id": tenantId, "rehearse.rubric": rubric.id };
     sessionsCompleted.add(1, attrs);
     sessionScore.record(score, attrs);
-    return toSessionSummary(updated!, scenario.title);
+    return toSessionSummary(updated!, scenario);
   }
 
   private async load(tenantId: string, id: string) {

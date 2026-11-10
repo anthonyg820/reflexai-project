@@ -52,3 +52,6 @@ export function getRubric(id: string): RubricDefinition {
   if (!rubric) throw new Error(`Unknown scoring rubric "${id}"`);
   return rubric;
 }
+
+// Shared with coaching.ts (live coaching and the scorecard).
+export { EMPATHY, REFLECTIONS };
