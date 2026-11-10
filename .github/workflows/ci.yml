@@ -4,7 +4,7 @@ name: CI
 on:
   pull_request:
   merge_group:
-  workflow_dispatch: # the Scenario B demo starts CI on its PRs (PRs opened by GITHUB_TOKEN trigger nothing)
+  workflow_dispatch: # the Scenario B demo starts CI on its PRs (see report-to-pr)
   push:
     branches: [main]
     paths-ignore: ["docs/**", "**/*.md"]
@@ -84,6 +84,29 @@ jobs:
           node --test scripts/review-policy/*.test.mjs
           # The Scenario B demo PRs must still apply to this commit (or already be applied, on a demo branch).
           for p in demo/review-queue/*.patch; do git apply --check "$p" || git apply --check -R "$p"; done
+
+  # The Scenario B demo starts CI with workflow_dispatch because GitHub holds
+  # pull_request runs on PRs opened by GITHUB_TOKEN for approval. A dispatched
+  # run's checks don't count for the PR, so report this run's result as a
+  # commit status on the same commit, under the required check's name.
+  report-to-pr:
+    name: Report result to the PR (dispatched runs)
+    needs: checks
+    if: always() && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      statuses: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ needs.checks.result }}
+        run: |
+          state=failure; [[ "$RESULT" == success ]] && state=success
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" \
+            -f state="$state" -f context="Lint, typecheck, test, build" \
+            -f description="CI run $GITHUB_RUN_ID: $RESULT" \
+            -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
 
   images:
     name: Build & scan ${{ matrix.image }}
