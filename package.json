@@ -20,7 +20,7 @@
     "eslint": "9.39.5",
     "turbo": "2.11.10",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.72.1",
+    "typescript-eslint": "8.72.2",
     "yaml": "2.8.1"
   }
 }
