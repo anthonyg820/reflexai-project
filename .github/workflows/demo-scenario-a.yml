@@ -124,8 +124,11 @@ jobs:
           bash deploy/scripts/demo-annotate.sh "Scenario A ${{ inputs.mode }}: $vars pushed, image unchanged" scenario-a
           # --async: return at once so the probe sees the whole timeline, the way
           # users did while the old job was still busy building the image.
-          gcloud run services update "$SVC" "${gcr[@]}" --container api --update-env-vars "$vars" \
-            --revision-suffix "demo-$(date +%s)" --update-labels app=rehearse-demo --async --quiet
+          # Service-level flags go before --container: newer gcloud treats every
+          # flag after --container as belonging to that container.
+          gcloud run services update "$SVC" "${gcr[@]}" \
+            --revision-suffix "demo-$(date +%s)" --update-labels app=rehearse-demo --async --quiet \
+            --container api --update-env-vars "$vars"
           {
             echo "- Config pushed: \`$vars\`"
             echo "- Image (unchanged): \`${image##*@}\`"
