@@ -29,12 +29,14 @@ alert rule exists, and give it an Editor token for deploy markers.
 1. Start **Demo: Scenario A**, `mode=legacy-order` (defaults: 4 minutes of traffic, auto-recover on).
 2. Talk while it runs. The job pushes `SCORING_RUBRIC=rubric-c` to the running `rehearse-dev-api`
    **with the old image**, the order the old Terraform-first job used.
-3. Watch Grafana: a purple "demo" marker, the API 5xx panel jumps to 100%, the web dashboard page
+3. Open the app's **Rubrics** page: it stays up and says the configured `rubric-c` is unknown to this
+   release, which is exactly the mismatch.
+4. Watch Grafana: a purple "demo" marker, the API 5xx panel jumps to 100%, the web dashboard page
    errors for every tenant, and about 2 minutes in **Rehearse API 5xx ratio** fires. The alert
    noticed, not a person.
-4. Job summary: the timeline (config pushed → new revision took traffic → first user error) and
+5. Job summary: the timeline (config pushed → new revision took traffic → first user error) and
    the OK/error counts.
-5. The `recover` job then redeploys the last real release through the normal path, like the new
+6. The `recover` job then redeploys the last real release through the normal path, like the new
    image finally arriving. The whole run takes about as long as their outage did.
 
 ### 2b. Same change, guarded (`mode=guarded`, ~5 min)

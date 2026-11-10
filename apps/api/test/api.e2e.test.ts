@@ -106,6 +106,18 @@ describe.skipIf(!url)("API (e2e)", () => {
     expect(stats.body.totals.completed).toBe(1);
     expect(stats.body.recent[0]).toMatchObject({ id: session.body.id, persona: "Tess" });
     expect(stats.body.totals.passRate).toEqual(expect.any(Number));
+    const rubrics = await request(http).get("/api/rubrics").set("x-tenant-id", T).expect(200);
+    expect(rubrics.body).toMatchObject({ configured: "rubric-a", configuredKnown: true });
+    expect(rubrics.body.rubrics.find((r: { id: string }) => r.id === "rubric-a")).toMatchObject({ active: true, sessions: 1 });
+    expect(rubrics.body.criteria).toHaveLength(4);
+
+    const preview = await request(http)
+      .post("/api/rubrics/preview")
+      .set("x-tenant-id", T)
+      .send({ messages: ["I'm so sorry, that sounds hard.", "What has been the hardest part?"] })
+      .expect(200);
+    expect(preview.body.scores.map((s: { id: string }) => s.id).sort()).toEqual(["rubric-a", "rubric-b"]);
+    expect(preview.body.criteria).toHaveLength(4);
     expect(stats.body.weakestSkill).toMatchObject({ name: expect.any(String), average: expect.any(Number) });
   });
 });

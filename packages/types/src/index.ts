@@ -149,3 +149,39 @@ export interface Health {
   cloud: string;
   rubric: string;
 }
+
+/** One line of how a rubric scores, e.g. { label: "Each empathy phrase", points: "+10" }. */
+export interface RubricRule {
+  label: string;
+  points: string;
+}
+
+export interface RubricDetail extends RubricInfo {
+  description: string;
+  rules: RubricRule[];
+  /** The rubric this environment scores with (SCORING_RUBRIC). */
+  active: boolean;
+  /** This tenant's completed sessions scored with this rubric. */
+  sessions: number;
+  averageScore: number | null;
+  /** 0-100 */
+  passRate: number | null;
+}
+
+export interface Rubrics {
+  /** SCORING_RUBRIC as configured, even if this release doesn't know it. */
+  configured: string;
+  configuredKnown: boolean;
+  rubrics: RubricDetail[];
+  /** The coaching criteria (live coach and scorecard), which are separate from the rubric score. */
+  criteria: { id: CriterionScore["id"]; name: string; description: string }[];
+}
+
+export interface RubricPreviewRequest {
+  messages: string[];
+}
+
+export interface RubricPreview {
+  scores: { id: string; name: string; score: number; passingScore: number; passed: boolean }[];
+  criteria: CriterionScore[];
+}

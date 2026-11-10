@@ -4,6 +4,8 @@ import { LoggerModule } from "nestjs-pino";
 import { CONFIG, type ApiConfig } from "./config";
 import { DbModule } from "./db/db.module";
 import { HealthController } from "./health/health.controller";
+import { RubricsController } from "./rubrics/rubrics.controller";
+import { RubricsService } from "./rubrics/rubrics.service";
 import { ScenariosController } from "./scenarios/scenarios.controller";
 import { ScenariosService } from "./scenarios/scenarios.service";
 import { SessionsController } from "./sessions/sessions.controller";
@@ -33,8 +35,8 @@ export class AppModule implements OnApplicationShutdown {
         }),
         DbModule,
       ],
-      controllers: [HealthController, ScenariosController, SessionsController, StatsController],
-      providers: [ScenariosService, SessionsService, StatsService],
+      controllers: [HealthController, RubricsController, ScenariosController, SessionsController, StatsController],
+      providers: [RubricsService, ScenariosService, SessionsService, StatsService],
     };
   }
 }
