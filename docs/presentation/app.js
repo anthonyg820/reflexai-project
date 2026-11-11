@@ -57,6 +57,7 @@
     i = Math.max(0, Math.min(slides.length - 1, i));
     if (i === current) return;
     clearTimers();
+    closeZoom();
     closePhase();
     slides.forEach((s, j) => {
       s.classList.toggle("is-active", j === i);
@@ -85,6 +86,35 @@
 
   prev.addEventListener("click", () => go(current - 1));
   next.addEventListener("click", () => go(current + 1));
+  // Full-screen diagram (slide 3): Esc or a click closes it; other keys are ignored while it's open.
+  const zoom = document.getElementById("zoom");
+  const zoomImg = document.getElementById("zoom-img");
+  let zoomFrom = null;
+  function openZoom(btn) {
+    zoomFrom = btn;
+    zoomImg.src = btn.dataset.zoom;
+    zoomImg.alt = btn.querySelector("img").alt;
+    zoom.hidden = false;
+    document.getElementById("zoom-close").focus();
+  }
+  function closeZoom() {
+    if (zoom.hidden) return;
+    zoom.hidden = true;
+    zoomFrom?.focus();
+  }
+  document.querySelectorAll(".diff-img").forEach((b) => b.addEventListener("click", () => openZoom(b)));
+  zoom.addEventListener("click", closeZoom);
+  addEventListener(
+    "keydown",
+    (e) => {
+      if (zoom.hidden) return;
+      if (e.key === "Escape" || e.key === "Enter" || e.key === " ") closeZoom();
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    },
+    true,
+  );
+
   addEventListener("keydown", (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.target.closest && e.target.closest("button, a") && (e.key === " " || e.key === "Enter")) return;
@@ -100,6 +130,7 @@
     else if (k === "Home") go(0);
     else if (k === "End") go(slides.length - 1);
     else if (/^[1-9]$/.test(k)) go(Number(k) - 1);
+    else if (k === "0") go(9); // slide 10, the live demo
     else if (k === "a" || k === "A") approve();
     else if (k === "f" || k === "F") fullscreen();
     else return;

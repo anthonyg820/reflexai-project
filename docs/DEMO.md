@@ -10,12 +10,12 @@ Admin token (dashboard + the 5xx alert rule) and stored an Editor token for depl
 If either is ever re-created, re-run that launcher; both are safe to repeat.
 
 **Opening:** present `docs/presentation/index.html` full screen (press `F`, arrow keys to move).
-Nine slides: 1 goal · 2 the app (dashboard + how scoring works) · 3 stack · 4 one digest, one
-release (GCP / AWS tabs) · 5 CI/CD (click a phase for details; `A` approves prod) · 6 Scenario B ·
-7 the review policy · 8 Scenario A · 9 live demo, whose links go straight to the app, Actions and
-Grafana.
+Ten slides: 1 goal · 2 the app · 3 your diagram before / after (click to enlarge) · 4 stack ·
+5 one digest, one release (GCP / AWS tabs) · 6 CI/CD (click a phase for details; `A` approves prod) ·
+7 Scenario B · 8 the review policy · 9 Scenario A · 10 live demo (key `0`), whose links go straight
+to the app, Actions and Grafana.
 Appendix (optional, for questions): A1 bootstrap · A2 Terraform modules · A3 Terragrunt
-environments · A4 databases · A5 observability · A6 GitHub Actions workflows. `→` past slide 9 or `End`.
+environments · A4 databases · A5 observability · A6 GitHub Actions workflows. `→` past slide 10 or `End`.
 
 **The day before:** promote the latest release so UAT and prod have every fix (**Promote**
 `target=uat`, then `target=prod` and approve), and do one practice run of each scenario.
@@ -31,7 +31,7 @@ environments · A4 databases · A5 observability · A6 GitHub Actions workflows.
 ## 1. The pipeline in one picture (2 min)
 
 Demo order follows the pipeline: Scenario B (CI, the review queue) first, then Scenario A (CD).
-Slides 4–5, `docs/PLAN.md` §3.2, or the last **Release** and **Promote** runs:
+Slides 3, 5–6, `docs/PLAN.md` §3.2, or the last **Release** and **Promote** runs:
 - Merge builds each image **once**; the Release summary lists the digests.
 - **Promote** reads the version running in the previous stage, checks digests, and deploys the
   same bytes. Nothing is rebuilt per environment.
@@ -54,7 +54,7 @@ its PRs trigger CI normally.
    Ignore the **"Approve workflows to run"** banner: GitHub holds `pull_request` runs on PRs opened
    by `GITHUB_TOKEN`, so the demo starts CI itself and reports the result to each PR as the
    required `Lint, typecheck, test, build` status (`report-to-pr` in `ci.yml`). Don't approve them.
-   Slide 7 has the rules behind each label (when it runs, what it reads, first match wins).
+   Slide 8 has the rules behind each label (when it runs, what it reads, first match wins).
 3. A few minutes later the low-risk PR is merged by auto-merge.
 4. Approve the agent fix (Files changed → Review changes → Approve). The **Review policy**
    workflow re-runs, the status turns green, and you can merge it. Approve the infra PR the same

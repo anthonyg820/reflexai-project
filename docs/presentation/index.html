@@ -9,8 +9,8 @@
 <body>
 <!--
   Interview summary, shown before the live demo. Open this file directly in a browser
-  (no build step, no network needed). Keys: ← → / space / PageUp / PageDown, 1-9 to jump (10-15 are an optional appendix: arrows or End),
-  A to approve prod on slide 5 (click a stage for details; ↑ ↓ switch, Esc closes), F for full screen. Links for the last slide: links.js
+  (no build step, no network needed). Keys: ← → / space / PageUp / PageDown, 1-9 to jump (11-16 are an optional appendix: arrows or End),
+  A to approve prod on slide 6 (click a stage for details; ↑ ↓ switch, Esc closes), F for full screen. Links for the last slide: links.js
   (copy links.example.js; links.js is git-ignored).
 -->
 <div class="viewport">
@@ -23,7 +23,7 @@
   <div class="chrome-top" id="counter" aria-live="polite">01 / 09</div>
 
   <!-- 1 · Goal -->
-  <section class="slide s-goal is-active" aria-label="1 of 15: Goal">
+  <section class="slide s-goal is-active" aria-label="1 of 16: Goal">
     <div class="orbit" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b><b></b></div>
     <div class="content">
       <p class="eyebrow reveal" style="--d:0">ReflexAI · Senior Platform Engineer · technical deep dive</p>
@@ -38,7 +38,7 @@
   </section>
 
   <!-- 2 · The app -->
-  <section class="slide s-app" aria-label="2 of 15: The RehearseAI app">
+  <section class="slide s-app" aria-label="2 of 16: The RehearseAI app">
     <header>
       <p class="eyebrow reveal" style="--d:0">The app</p>
       <h1 class="h-l reveal" style="--d:1; font-size:46px">RehearseAI: practice the hard conversations.</h1>
@@ -100,8 +100,43 @@
     </section>
   </section>
 
-  <!-- 3 · Stack & architecture -->
-  <section class="slide s-stack" aria-label="3 of 15: Stack and architecture">
+  <!-- 3 · Before / after -->
+  <section class="slide s-diff" aria-label="3 of 16: Your pipeline, three changes">
+    <header>
+      <p class="eyebrow reveal" style="--d:0">The plan</p>
+      <h1 class="h-l reveal" style="--d:1; font-size:46px">Your pipeline, three changes.</h1>
+      <p class="lede reveal" style="--d:2; margin-top:10px; font-size:16px; max-width:none">Same flow and the same approvals. The numbered changes are what you’ll see live in the demo.</p>
+    </header>
+    <div class="diff-grid">
+      <figure class="diff-fig before">
+        <figcaption><h2 class="pol-label">Before</h2><span>ReflexAI’s diagram</span><em>as provided</em></figcaption>
+        <button type="button" class="diff-img" data-zoom="img/diagram-before.webp" aria-label="Open ReflexAI's original diagram full screen">
+          <img src="img/diagram-before.webp" width="910" height="664" alt="ReflexAI's original CI/CD diagram: pull request, review by one human (the largest bottleneck), merge queue, dev, deploy manager, UAT approval, prod approval, then a release job per environment that runs terraform apply, builds the image and deploys it, rebuilding the image for each environment">
+          <i class="pin" style="--x:49%;--y:13%;--n:0">1</i><i class="pin" style="--x:37%;--y:55%;--n:1">2</i><i class="pin" style="--x:95%;--y:55%;--n:2">3</i>
+        </button>
+      </figure>
+      <figure class="diff-fig after">
+        <figcaption><h2 class="pol-label">After</h2><span>what we changed (green)</span><em>built + rehearsed</em></figcaption>
+        <button type="button" class="diff-img" data-zoom="img/diagram-after.webp" aria-label="Open the revised diagram full screen">
+          <img src="img/diagram-after.webp" width="2480" height="1700" alt="The revised diagram: a review policy that routes PRs by risk, build once on merge with images pushed by digest, promote copies the digest, and one release per environment that ships the image digest, that environment's config and the revision shape together, checked before traffic">
+          <i class="pin" style="--x:27.5%;--y:8.5%;--n:0">1</i><i class="pin" style="--x:74.5%;--y:26%;--n:1">2</i><i class="pin" style="--x:26%;--y:44%;--n:2">3</i>
+        </button>
+      </figure>
+    </div>
+    <div class="card diff-legend reveal" style="--d:6">
+      <div style="--n:0"><span class="num">1</span><div><b>Review bottleneck → review policy</b><span>Risk is read from the diff. Low-risk PRs merge themselves; people review what needs judgement.</span><small>▸ Scenario B demo: three PRs, three lanes</small></div></div>
+      <div style="--n:1"><span class="num">2</span><div><b>Rebuilt per environment → build once</b><span>One image per commit, promoted by digest. Prod runs the bytes UAT tested.</span><small>▸ Scenario A demo: rebuild-drift</small></div></div>
+      <div style="--n:2"><span class="num">3</span><div><b>Config before image → one release</b><span>Image, config and revision ship together; bad config is stopped before it gets traffic.</span><small>▸ Scenario A demo: legacy-order vs guarded</small></div></div>
+    </div>
+  </section>
+
+  <div class="zoom" id="zoom" role="dialog" aria-modal="true" aria-label="Diagram, full screen" hidden>
+    <img id="zoom-img" alt="">
+    <button type="button" class="zoom-close" id="zoom-close"><kbd>Esc</kbd> close <span aria-hidden="true">×</span></button>
+  </div>
+
+  <!-- 4 · Stack & architecture -->
+  <section class="slide s-stack" aria-label="4 of 16: Stack and architecture">
     <header class="slide-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Stack &amp; architecture</p>
@@ -143,8 +178,8 @@
     </div>
   </section>
 
-  <!-- 4 · One digest, one release (GCP / AWS tabs) -->
-  <section class="slide s-release" aria-label="4 of 15: One digest, one release">
+  <!-- 5 · One digest, one release (GCP / AWS tabs) -->
+  <section class="slide s-release" aria-label="5 of 16: One digest, one release">
     <header>
       <p class="eyebrow reveal" style="--d:0">Stack &amp; architecture · the release</p>
       <h1 class="h-l reveal" style="--d:1; font-size:42px">One digest. One release.</h1>
@@ -241,8 +276,8 @@
     </div>
   </section>
 
-  <!-- 5 · CI/CD -->
-  <section class="slide s-pipeline" aria-label="5 of 15: CI/CD from dev to UAT to prod">
+  <!-- 6 · CI/CD -->
+  <section class="slide s-pipeline" aria-label="6 of 16: CI/CD from dev to UAT to prod">
     <header class="slide-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">CI/CD · dev → UAT → prod</p>
@@ -474,8 +509,8 @@
     </div>
   </section>
 
-  <!-- 6 · Scenario B -->
-  <section class="slide s-b" aria-label="6 of 15: The review queue">
+  <!-- 7 · Scenario B -->
+  <section class="slide s-b" aria-label="7 of 16: The review queue">
     <header>
       <p class="eyebrow warn reveal" style="--d:0">Scenario B</p>
       <h1 class="h-l reveal" style="--d:1">The review queue.</h1>
@@ -504,8 +539,8 @@
     </div>
   </section>
 
-  <!-- 7 · Review policy (Scenario B, in detail) -->
-  <section class="slide s-policy" aria-label="7 of 15: The review policy">
+  <!-- 8 · Review policy (Scenario B, in detail) -->
+  <section class="slide s-policy" aria-label="8 of 16: The review policy">
     <header class="slide-head">
       <div>
         <p class="eyebrow warn reveal" style="--d:0">Scenario B</p>
@@ -575,8 +610,8 @@
     </div>
   </section>
 
-  <!-- 8 · Scenario A -->
-  <section class="slide s-a" aria-label="8 of 15: Right config, wrong image">
+  <!-- 9 · Scenario A -->
+  <section class="slide s-a" aria-label="9 of 16: Right config, wrong image">
     <header class="slide-head">
       <div>
         <p class="eyebrow warn reveal" style="--d:0">Scenario A</p>
@@ -616,8 +651,8 @@
     </div>
   </section>
 
-  <!-- 9 · Live demo -->
-  <section class="slide s-demo" aria-label="9 of 15: Time for a live demo">
+  <!-- 10 · Live demo -->
+  <section class="slide s-demo" aria-label="10 of 16: Time for a live demo">
     <div class="glow" aria-hidden="true"></div>
     <div class="ripples" aria-hidden="true"><i></i><i></i><i></i></div>
     <div class="countdown" aria-hidden="true"><span>3</span></div>
@@ -636,8 +671,8 @@
     </div>
   </section>
 
-  <!-- 10 · Appendix: bootstrap -->
-  <section class="slide s-appx s-boot appendix" aria-label="10 of 15: Bootstrap (appendix)">
+  <!-- 11 · Appendix: bootstrap -->
+  <section class="slide s-appx s-boot appendix" aria-label="11 of 16: Bootstrap (appendix)">
     <header class="appx-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Appendix · setup</p>
@@ -655,8 +690,8 @@
     <p class="appx-callout reveal" style="--d:13"><b>After step 7, nothing is manual:</b> every merge deploys to gcp-dev, Promote moves a release on, Infra apply and nightly drift detection keep the infrastructure matching the code.</p>
   </section>
 
-  <!-- 11 · Appendix: Terraform modules -->
-  <section class="slide s-appx s-modules appendix" aria-label="11 of 15: Terraform modules (appendix)">
+  <!-- 12 · Appendix: Terraform modules -->
+  <section class="slide s-appx s-modules appendix" aria-label="12 of 16: Terraform modules (appendix)">
     <header class="appx-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Appendix · infrastructure</p>
@@ -672,8 +707,8 @@
     <p class="appx-callout reveal" style="--d:12"><b>The Scenario A rule, in code:</b> both service shells use <code>lifecycle { ignore_changes = … }</code> on the revision / task definition, so <em>terraform apply</em> can never push config ahead of an image.</p>
   </section>
 
-  <!-- 12 · Appendix: Terragrunt -->
-  <section class="slide s-appx s-tg appendix" aria-label="12 of 15: Terragrunt environments (appendix)">
+  <!-- 13 · Appendix: Terragrunt -->
+  <section class="slide s-appx s-tg appendix" aria-label="13 of 16: Terragrunt environments (appendix)">
     <header class="appx-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Appendix · infrastructure</p>
@@ -715,8 +750,8 @@
     </div>
   </section>
 
-  <!-- 13 · Appendix: databases -->
-  <section class="slide s-appx s-db appendix" aria-label="13 of 15: Databases (appendix)">
+  <!-- 14 · Appendix: databases -->
+  <section class="slide s-appx s-db appendix" aria-label="14 of 16: Databases (appendix)">
     <header class="appx-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Appendix · data</p>
@@ -745,8 +780,8 @@
     <p class="appx-callout reveal" style="--d:8"><b>Why Neon:</b> it’s plain Postgres (where ReflexAI is heading), it costs nothing at this size, and branching makes a database per PR preview cheap later.</p>
   </section>
 
-  <!-- 14 · Appendix: observability -->
-  <section class="slide s-appx s-obs appendix" aria-label="14 of 15: Observability (appendix)">
+  <!-- 15 · Appendix: observability -->
+  <section class="slide s-appx s-obs appendix" aria-label="15 of 16: Observability (appendix)">
     <header class="appx-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Appendix · observability</p>
@@ -773,8 +808,8 @@
     <p class="appx-callout reveal" style="--d:12"><b>In Scenario A</b> this is what noticed first: the 5xx ratio jumped, the alert fired about two minutes in, and the purple demo marker shows exactly which change caused it.</p>
   </section>
 
-  <!-- 15 · Appendix: workflows -->
-  <section class="slide s-appx s-wf appendix" aria-label="15 of 15: GitHub Actions workflows (appendix)">
+  <!-- 16 · Appendix: workflows -->
+  <section class="slide s-appx s-wf appendix" aria-label="16 of 16: GitHub Actions workflows (appendix)">
     <header class="appx-head">
       <div>
         <p class="eyebrow reveal" style="--d:0">Appendix · automation</p>
