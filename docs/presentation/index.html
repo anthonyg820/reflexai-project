@@ -474,51 +474,10 @@
     </div>
   </section>
 
-  <!-- 6 · Scenario A -->
-  <section class="slide s-a" aria-label="6 of 15: Right config, wrong image">
-    <header class="slide-head">
-      <div>
-        <p class="eyebrow warn reveal" style="--d:0">Problem 1</p>
-        <h1 class="h-l reveal" style="--d:1">Right config, wrong image.</h1>
-      </div>
-      <div class="seg reveal" style="--d:2" role="group" aria-label="View">
-        <button type="button" aria-pressed="false" data-mode="before">Before</button>
-        <button type="button" aria-pressed="true" data-mode="both">Side by side</button>
-        <button type="button" aria-pressed="false" data-mode="after">After</button>
-      </div>
-    </header>
-    <div class="compare" id="compare" data-mode="both">
-      <section class="panel before reveal" style="--d:3" aria-label="What happened">
-        <div class="panel-head"><h2>What happened</h2><span class="big-num warn" id="clock">00:00 of 500s</span></div>
-        <ol class="steps">
-          <li><span class="n">1</span><span>A release adds a new config value. Terraform applies it <strong>first</strong>.</span></li>
-          <li><span class="n">2</span><span>Cloud Run makes a revision: <strong>new config + old image</strong>.</span></li>
-          <li><span class="n">3</span><span>Old code can’t read the value. Every tenant gets errors until the new image lands.</span></li>
-          <li><span class="n">4</span><span>A person noticed first, not an alert.</span></li>
-          <li><span class="n">5</span><span>The image is rebuilt per environment, so prod isn’t what was tested.</span></li>
-        </ol>
-        <div class="timeline" aria-hidden="true"><i id="outage-bar"></i></div>
-        <div class="rain" id="rain" aria-hidden="true"></div>
-      </section>
-      <section class="panel after reveal" style="--d:4" aria-label="What we changed">
-        <div class="panel-head"><h2>What we changed</h2><span class="big-num ok">0 user errors</span></div>
-        <ul class="steps">
-          <li><svg class="ck" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span><strong>One release, one unit.</strong> Image digest, config and revision shape ship together as one Cloud Run revision.</span></li>
-          <li><svg class="ck" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Terraform stays out of the way.</strong> It owns the service shell and ignores the revision.</span></li>
-          <li><svg class="ck" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Config checked three times.</strong> In CI, when the release is rendered, and when the container starts.</span></li>
-          <li><svg class="ck" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Build once, promote by digest.</strong> The bytes tested in dev are the bytes in prod.</span></li>
-          <li><svg class="ck" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Machines notice first.</strong> Canary, a 5xx alert and deploy markers on the dashboard.</span></li>
-        </ul>
-        <div class="bounce-lane" aria-hidden="true"><span class="rev">rubric-c</span><span class="wall-label">startup check</span><span class="wall"></span></div>
-        <div class="guard" id="guard"><span class="pill">CI rejects</span><span class="pill">renderer rejects</span><span class="pill">startup probe rejects</span><span class="pill">alert fires</span></div>
-      </section>
-    </div>
-  </section>
-
-  <!-- 7 · Scenario B -->
-  <section class="slide s-b" aria-label="7 of 15: The review queue">
+  <!-- 6 · Scenario B -->
+  <section class="slide s-b" aria-label="6 of 15: The review queue">
     <header>
-      <p class="eyebrow warn reveal" style="--d:0">Problem 2</p>
+      <p class="eyebrow warn reveal" style="--d:0">Scenario B</p>
       <h1 class="h-l reveal" style="--d:1">The review queue.</h1>
       <p class="lede reveal" style="--d:2; margin-top:12px; font-size:19px; max-width:1000px">Agents open more PRs, human review is the slowest step, and compliance still wants a second person on production changes. So humans should review less, and only where it matters.</p>
     </header>
@@ -545,11 +504,11 @@
     </div>
   </section>
 
-  <!-- 8 · Review policy (Problem 2, in detail) -->
-  <section class="slide s-policy" aria-label="8 of 15: The review policy">
+  <!-- 7 · Review policy (Scenario B, in detail) -->
+  <section class="slide s-policy" aria-label="7 of 15: The review policy">
     <header class="slide-head">
       <div>
-        <p class="eyebrow warn reveal" style="--d:0">Problem 2</p>
+        <p class="eyebrow warn reveal" style="--d:0">Scenario B</p>
         <h1 class="h-l reveal" style="--d:1; font-size:46px">The review policy: the diff decides the risk.</h1>
         <p class="lede reveal" style="--d:2; margin-top:10px; font-size:16px">One workflow reads every PR, assigns its risk level and enforces who must review it. No person picks it.</p>
       </div>
@@ -616,6 +575,47 @@
     </div>
   </section>
 
+  <!-- 8 · Scenario A -->
+  <section class="slide s-a" aria-label="8 of 15: Right config, wrong image">
+    <header class="slide-head">
+      <div>
+        <p class="eyebrow warn reveal" style="--d:0">Scenario A</p>
+        <h1 class="h-l reveal" style="--d:1">Right config, wrong image.</h1>
+      </div>
+      <div class="seg reveal" style="--d:2" role="group" aria-label="View">
+        <button type="button" aria-pressed="false" data-mode="before">Before</button>
+        <button type="button" aria-pressed="true" data-mode="both">Side by side</button>
+        <button type="button" aria-pressed="false" data-mode="after">After</button>
+      </div>
+    </header>
+    <div class="compare" id="compare" data-mode="both">
+      <section class="panel before reveal" style="--d:3" aria-label="What happened">
+        <div class="panel-head"><h2>What happened</h2><span class="big-num warn" id="clock">00:00 of 500s</span></div>
+        <ol class="steps">
+          <li><span class="n">1</span><span>A release adds a new config value. Terraform applies it <strong>first</strong>.</span></li>
+          <li><span class="n">2</span><span>Cloud Run makes a revision: <strong>new config + old image</strong>.</span></li>
+          <li><span class="n">3</span><span>Old code can’t read the value. Every tenant gets errors until the new image lands.</span></li>
+          <li><span class="n">4</span><span>A person noticed first, not an alert.</span></li>
+          <li><span class="n">5</span><span>The image is rebuilt per environment, so prod isn’t what was tested.</span></li>
+        </ol>
+        <div class="timeline" aria-hidden="true"><i id="outage-bar"></i></div>
+        <div class="rain" id="rain" aria-hidden="true"></div>
+      </section>
+      <section class="panel after reveal" style="--d:4" aria-label="What we changed">
+        <div class="panel-head"><h2>What we changed</h2><span class="big-num ok">0 user errors</span></div>
+        <ul class="steps">
+          <li><svg class="ck" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span><strong>One release, one unit.</strong> Image digest, config and revision shape ship together as one Cloud Run revision.</span></li>
+          <li><svg class="ck" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Terraform stays out of the way.</strong> It owns the service shell and ignores the revision.</span></li>
+          <li><svg class="ck" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Config checked three times.</strong> In CI, when the release is rendered, and when the container starts.</span></li>
+          <li><svg class="ck" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Build once, promote by digest.</strong> The bytes tested in dev are the bytes in prod.</span></li>
+          <li><svg class="ck" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span><strong>Machines notice first.</strong> Canary, a 5xx alert and deploy markers on the dashboard.</span></li>
+        </ul>
+        <div class="bounce-lane" aria-hidden="true"><span class="rev">rubric-c</span><span class="wall-label">startup check</span><span class="wall"></span></div>
+        <div class="guard" id="guard"><span class="pill">CI rejects</span><span class="pill">renderer rejects</span><span class="pill">startup probe rejects</span><span class="pill">alert fires</span></div>
+      </section>
+    </div>
+  </section>
+
   <!-- 9 · Live demo -->
   <section class="slide s-demo" aria-label="9 of 15: Time for a live demo">
     <div class="glow" aria-hidden="true"></div>
@@ -624,10 +624,10 @@
     <p class="live-tag"><i aria-hidden="true"></i>Live · gcp-dev · Grafana Cloud</p>
     <h1 class="demo-title" id="demo-title" aria-label="Time for a live demo."><span class="line" data-text="Time for a"></span><span class="line accent" data-text="live demo."></span></h1>
     <ol class="beats">
-      <li><span class="mono">1</span>Break it the old way</li>
-      <li><span class="mono">2</span>Watch the guardrail hold</li>
-      <li><span class="mono">3</span>Rebuild drift</li>
-      <li><span class="mono">4</span>Sort the review queue</li>
+      <li><span class="mono">1</span>Sort the review queue</li>
+      <li><span class="mono">2</span>Break it the old way</li>
+      <li><span class="mono">3</span>Watch the guardrail hold</li>
+      <li><span class="mono">4</span>Rebuild drift</li>
     </ol>
     <div class="go">
       <a class="go-main" id="link-app" href="#" target="_blank" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg>Start the demo</a>
@@ -669,7 +669,7 @@
       <section class="gcp"><div class="col-head"><h2 class="pol-label">GCP · 5 modules</h2><span class="mono">infra/modules/gcp-*</span></div><div class="mods"><div class="mod reveal" style="--d:4"><div class="mod-head"><span class="mono">gcp-project-services</span></div><p>Turns on the GCP APIs everything else needs</p><div class="res"><i class="">project_service</i></div></div><div class="mod reveal" style="--d:5"><div class="mod-head"><span class="mono">gcp-artifact-registry</span></div><p>Docker repo for every image; keeps recent ones, cleans up the rest</p><div class="res"><i class="">artifact_registry_repository</i></div></div><div class="mod reveal" style="--d:6"><div class="mod-head"><span class="mono">gcp-github-wif</span></div><p>Keyless sign-in from GitHub Actions, locked to this repo</p><div class="res"><i class="">workload_identity_pool</i><i class="">pool_provider</i><i class="">service_account</i></div></div><div class="mod reveal" style="--d:7"><div class="mod-head"><span class="mono">gcp-secrets</span></div><p>Secret Manager containers; values are added by a launcher, never in Terraform</p><div class="res"><i class="">secret_manager_secret</i></div></div><div class="mod shell reveal" style="--d:8"><div class="mod-head"><span class="mono">gcp-cloud-run-service</span><em>service shell</em></div><p>The service shell: runtime identity, IAM, secret access. Ignores the revision</p><div class="res"><i class="">cloud_run_v2_service</i><i class="">service_account</i><i class="">iam_member</i></div></div></div></section>
       <section class="aws"><div class="col-head"><h2 class="pol-label">AWS · 7 modules (deferred)</h2><span class="mono">infra/modules/aws-*</span></div><div class="mods"><div class="mod reveal" style="--d:4"><div class="mod-head"><span class="mono">aws-network</span></div><p>VPC with public subnets. No NAT gateway (cost)</p><div class="res"><i class="">vpc</i><i class="">subnet</i><i class="">internet_gateway</i><i class="">route_table</i></div></div><div class="mod reveal" style="--d:5"><div class="mod-head"><span class="mono">aws-ecr</span></div><p>Image repos with a lifecycle policy</p><div class="res"><i class="">ecr_repository</i><i class="">lifecycle_policy</i></div></div><div class="mod reveal" style="--d:6"><div class="mod-head"><span class="mono">aws-github-oidc</span></div><p>GitHub OIDC provider + deploy role scoped to this repo</p><div class="res"><i class="">openid_connect_provider</i><i class="">iam_role</i></div></div><div class="mod reveal" style="--d:7"><div class="mod-head"><span class="mono">aws-ecs-cluster</span></div><p>Fargate cluster (Spot in UAT) and the task execution role</p><div class="res"><i class="">ecs_cluster</i><i class="">capacity_providers</i><i class="">iam_role</i></div></div><div class="mod reveal" style="--d:8"><div class="mod-head"><span class="mono">aws-alb</span></div><p>Load balancer, listener, path rules to api and web</p><div class="res"><i class="">lb</i><i class="">listener_rule</i><i class="">target_group</i></div></div><div class="mod shell reveal" style="--d:9"><div class="mod-head"><span class="mono">aws-ecs-service</span><em>service shell</em></div><p>The service shell and log group. Ignores the task definition and count</p><div class="res"><i class="">ecs_service</i><i class="">task_definition</i><i class="">log_group</i></div></div><div class="mod reveal" style="--d:10"><div class="mod-head"><span class="mono">aws-ssm-secrets</span></div><p>SSM parameters; Terraform ignores their values</p><div class="res"><i class="">ssm_parameter</i></div></div></div></section>
     </div>
-    <p class="appx-callout reveal" style="--d:12"><b>The Problem 1 rule, in code:</b> both service shells use <code>lifecycle { ignore_changes = … }</code> on the revision / task definition, so <em>terraform apply</em> can never push config ahead of an image.</p>
+    <p class="appx-callout reveal" style="--d:12"><b>The Scenario A rule, in code:</b> both service shells use <code>lifecycle { ignore_changes = … }</code> on the revision / task definition, so <em>terraform apply</em> can never push config ahead of an image.</p>
   </section>
 
   <!-- 12 · Appendix: Terragrunt -->
