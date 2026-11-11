@@ -14,7 +14,7 @@ Nine animated slides shown before the live demo, plus an optional appendix after
 | `F` | Full screen |
 
 - **Slide 4:** the GCP / AWS tabs switch the example release file (`←` `→` move between tabs while one is focused).
-- **Slide 6:** the Before / Side by side / After switch changes the view.
+- **Slide 8 (Scenario A):** the Before / Side by side / After switch changes the view.
 - **Links on the last slide:** they come from `links.example.js`. To add your Grafana dashboard, create `links.js` (git-ignored) with:
 
   ```js

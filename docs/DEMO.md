@@ -11,8 +11,8 @@ If either is ever re-created, re-run that launcher; both are safe to repeat.
 
 **Opening:** present `docs/presentation/index.html` full screen (press `F`, arrow keys to move).
 Nine slides: 1 goal · 2 the app (dashboard + how scoring works) · 3 stack · 4 one digest, one
-release (GCP / AWS tabs) · 5 CI/CD (click a phase for details; `A` approves prod) · 6 Problem 1 ·
-7 Problem 2 · 8 the review policy · 9 live demo, whose links go straight to the app, Actions and
+release (GCP / AWS tabs) · 5 CI/CD (click a phase for details; `A` approves prod) · 6 Scenario B ·
+7 the review policy · 8 Scenario A · 9 live demo, whose links go straight to the app, Actions and
 Grafana.
 Appendix (optional, for questions): A1 bootstrap · A2 Terraform modules · A3 Terragrunt
 environments · A4 databases · A5 observability · A6 GitHub Actions workflows. `→` past slide 9 or `End`.
@@ -29,13 +29,54 @@ environments · A4 databases · A5 observability · A6 GitHub Actions workflows.
 ---
 
 ## 1. The pipeline in one picture (2 min)
+
+Demo order follows the pipeline: Scenario B (CI, the review queue) first, then Scenario A (CD).
 Slides 4–5, `docs/PLAN.md` §3.2, or the last **Release** and **Promote** runs:
 - Merge builds each image **once**; the Release summary lists the digests.
 - **Promote** reads the version running in the previous stage, checks digests, and deploys the
   same bytes. Nothing is rebuilt per environment.
 - Only `production` needs a person (the compliance second approval). GCP prod gets a 10% canary.
 
-## 2. Scenario A: right config, wrong image
+## 2. Scenario B: the review queue
+
+If asked about the "Approve workflows to run" banner: GitHub won't let one workflow silently start
+another, so a bot can't escalate its own permissions. A real Renovate install is a GitHub App, so
+its PRs trigger CI normally.
+
+### 3a. Open the queue (`mode=open`, ~5 min until the low-risk PR merges)
+1. Run **Demo: Scenario B**, `mode=open`. It copies `main` to `demo/queue-base` and opens three PRs:
+   | PR | Policy says | What happens |
+   |---|---|---|
+   | Real dev-tooling dependency update from npm | `risk:low` | Merges itself when CI is green. No human. |
+   | Agent-written bug fix + test (`agent` label) | `risk:medium` | Waits for one human approval; bot approvals never count |
+   | Infra change (UAT api becomes private) | `risk:high` | Waits for a platform code owner (ruleset + policy) |
+2. Open the PR list: risk labels, the `review-policy` status with its reason, CI running.
+   Ignore the **"Approve workflows to run"** banner: GitHub holds `pull_request` runs on PRs opened
+   by `GITHUB_TOKEN`, so the demo starts CI itself and reports the result to each PR as the
+   required `Lint, typecheck, test, build` status (`report-to-pr` in `ci.yml`). Don't approve them.
+   Slide 7 has the rules behind each label (when it runs, what it reads, first match wins).
+3. A few minutes later the low-risk PR is merged by auto-merge.
+4. Approve the agent fix (Files changed → Review changes → Approve). The **Review policy**
+   workflow re-runs, the status turns green, and you can merge it. Approve the infra PR the same
+   way (you're the code owner). Don't use the admin bypass here: it skips what you're showing.
+
+### 3b. Talking points
+- The policy is code (`scripts/review-policy/classify.mjs`, unit tested). Rules are by path and
+  dependency semver, read from the diff: not commit messages or PR titles, and not trust in who
+  (or what) wrote the change. A hand-added `risk:` label is corrected on the next run, and the
+  rules always run from `main`, so a PR can't change its own verdict.
+- Humans spend review time on intent and risk; required checks (lint, types, tests, config,
+  render, image scan) handle the mechanics, so they must be trustworthy (quarantine flaky tests).
+- Compliance's "second person" sits on the **production deployment** (Promote → approve), which
+  GitHub records with who approved which build. Every change still flows dev → UAT → prod.
+- With a real team: turn on "Prevent self-review" on `production` (it's off here because I'm the
+  only reviewer), and use Renovate's schedule and grouping (`renovate.json`) to batch updates.
+
+### 3c. Reset
+Run `mode=cleanup` (or just `mode=open` again). It closes the demo PRs and deletes every `demo/*`
+branch; `main` is never touched.
+
+## 3. Scenario A: right config, wrong image
 
 ### 2a. Reproduce the incident (`mode=legacy-order`, ~9 min end to end)
 1. Start **Demo: Scenario A**, `mode=legacy-order` (defaults: 4 minutes of traffic, auto-recover on).
@@ -70,45 +111,6 @@ Slides 4–5, `docs/PLAN.md` §3.2, or the last **Release** and **Promote** runs
   owns only the service shell and ignores the revision.
 - Config is validated in CI, at render time and at startup; bad revisions never get traffic.
 - Canary + 5xx alert + deploy markers catch what's left, before a customer does.
-
-## 3. Scenario B: the review queue
-
-If asked about the "Approve workflows to run" banner: GitHub won't let one workflow silently start
-another, so a bot can't escalate its own permissions. A real Renovate install is a GitHub App, so
-its PRs trigger CI normally.
-
-### 3a. Open the queue (`mode=open`, ~5 min until the low-risk PR merges)
-1. Run **Demo: Scenario B**, `mode=open`. It copies `main` to `demo/queue-base` and opens three PRs:
-   | PR | Policy says | What happens |
-   |---|---|---|
-   | Real dev-tooling dependency update from npm | `risk:low` | Merges itself when CI is green. No human. |
-   | Agent-written bug fix + test (`agent` label) | `risk:medium` | Waits for one human approval; bot approvals never count |
-   | Infra change (UAT api becomes private) | `risk:high` | Waits for a platform code owner (ruleset + policy) |
-2. Open the PR list: risk labels, the `review-policy` status with its reason, CI running.
-   Ignore the **"Approve workflows to run"** banner: GitHub holds `pull_request` runs on PRs opened
-   by `GITHUB_TOKEN`, so the demo starts CI itself and reports the result to each PR as the
-   required `Lint, typecheck, test, build` status (`report-to-pr` in `ci.yml`). Don't approve them.
-   Slide 8 has the rules behind each label (when it runs, what it reads, first match wins).
-3. A few minutes later the low-risk PR is merged by auto-merge.
-4. Approve the agent fix (Files changed → Review changes → Approve). The **Review policy**
-   workflow re-runs, the status turns green, and you can merge it. Approve the infra PR the same
-   way (you're the code owner). Don't use the admin bypass here: it skips what you're showing.
-
-### 3b. Talking points
-- The policy is code (`scripts/review-policy/classify.mjs`, unit tested). Rules are by path and
-  dependency semver, read from the diff: not commit messages or PR titles, and not trust in who
-  (or what) wrote the change. A hand-added `risk:` label is corrected on the next run, and the
-  rules always run from `main`, so a PR can't change its own verdict.
-- Humans spend review time on intent and risk; required checks (lint, types, tests, config,
-  render, image scan) handle the mechanics, so they must be trustworthy (quarantine flaky tests).
-- Compliance's "second person" sits on the **production deployment** (Promote → approve), which
-  GitHub records with who approved which build. Every change still flows dev → UAT → prod.
-- With a real team: turn on "Prevent self-review" on `production` (it's off here because I'm the
-  only reviewer), and use Renovate's schedule and grouping (`renovate.json`) to batch updates.
-
-### 3c. Reset
-Run `mode=cleanup` (or just `mode=open` again). It closes the demo PRs and deletes every `demo/*`
-branch; `main` is never touched.
 
 ## 4. Rollback and drift (1 min)
 - **Rollback** with `cloud=gcp env=prod` moves traffic to the previous revision in seconds.
