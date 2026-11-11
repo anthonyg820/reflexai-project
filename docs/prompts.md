@@ -1077,3 +1077,405 @@ The presentation is built and in **PR #6**. Two frames from it are in `slide-3-p
 **Checked:** I clicked through every slide in Chromium, including approve, the view switch and the queue sorting. There were no errors, and I fixed a few layout issues I found along the way.
 
 Merge PR #6 and run `git pull`; then you can open it straight away.
+
+---
+
+### 43. Mon 2026-11-09 21:45
+
+The DEV build is throwing intermittent server errors
+
+*(Attached: a screenshot of the gcp-dev session page showing "Something went wrong".)*
+
+**Claude:**
+
+I found the cause, reproduced it, and fixed it. The fix is in **PR #7**, and all CI checks pass.
+
+**What was happening:** Neon puts an idle database to sleep after about 5 minutes on the free plan, and when it does, it cuts every open connection. Our API keeps a small pool of database connections, but it had no handler for "a connection I wasn't using just died". Node treats that as a fatal error, so **the whole API process crashed**. Cloud Run restarted it within seconds, and any request in that window got a server error, which the web app shows as "Something went wrong". That's why it was intermittent: it happened after the app sat idle for a few minutes, then cleared up.
+
+**How I confirmed it:** I ran the API locally, warmed it up, then cut its database connections the same way Neon does. The API process died with `57P01 terminating connection due to administrator command`. With the fix, the same test logs `idle database connection dropped (57P01); it will be replaced` and every request still returns 200.
+
+**The fix** (in `apps/api/src/db/db.module.ts`):
+- **No more crash:** a dropped idle connection is logged and replaced.
+- **One retry:** if a request picks up a connection that has already died, that one database query is retried once on a fresh connection. Multi-step transactions are not retried, to avoid repeating partial work.
+- **Idle cleanup:** idle connections are closed after 60 seconds, dead connections are detected sooner, and a waking database gets up to 15 seconds to connect.
+- **Tests:** a new end-to-end test cuts every database connection mid-run and checks that the API keeps answering. Without the fix, that test fails with the same crash.
+
+**Next steps:**
+1. **Merge PR #7.** That deploys it to gcp-dev automatically.
+2. **Check it:** leave dev idle for 6 or more minutes, then use it. The first request may take a few extra seconds while Neon wakes up, but it shouldn't error.
+3. **Promote:** UAT and prod have the same bug, so promote once you're happy. I'd do this before Wednesday, since the demo will have idle gaps.
+
+This is also a good real incident story for the interview: no alert caught it because the instance restarted fast enough. A restart-count or uptime check would have flagged it.
+
+---
+
+### 44. Mon 2026-11-09 21:58
+
+The web app is still having the same intermittent server errors
+
+**Claude:**
+
+Sorry, my last fix missed the real cause. This time I reproduced the actual error in a browser, and the fix is in **PR #8**, with all CI checks passing.
+
+**What I found:**
+- **Server:** I read the gcp-dev Cloud Run logs for the last 6 hours and found no server errors at all. Every request to the web app and the API returned 200.
+- **Browser:** the crash was in the page itself. I drove the dev site in the desktop app's browser. Starting a practice session and sending the first message brought up "Something went wrong", and the console showed `TypeError: i is not a function`. A local development build turned that into React's real message: an effect returned something other than a cleanup function.
+
+**The cause:** one line in the chat. It scrolls to the newest message after each reply:
+
+```tsx
+useEffect(() => end.current?.scrollIntoView({ block: "nearest" }), [messages.length]);
+```
+
+Recent versions of Chrome return a Promise from `scrollIntoView()`. Because of the short arrow syntax, that Promise became the effect's return value, and React treats an effect's return value as its "clean up" function. Next time it ran, after the next message, on End & score, or when you navigated away, React tried to call the Promise and the page crashed into the error screen. It looked intermittent because it depended on what you did next, not on the server.
+
+**The fix:**
+- The effect now has braces, so it returns nothing.
+- A new lint rule rejects that pattern in any React effect, so CI would have caught this one. It flags the old code.
+
+**Checked:** an automated browser run (Practice → send two messages → End & score → navigate) crashed before the fix and is clean after it.
+
+**About PR #7:** the database-connection crash it fixed was real, and I reproduced it, so it stays. But it wasn't what you were seeing. I've noted both in `docs/PLAN.md` and `CLAUDE.md`.
+
+**Next steps:**
+1. **Merge PR #8.** It deploys to gcp-dev automatically.
+2. **Try a session.** Start one, send messages and end it; it should go straight to the scorecard.
+3. **Promote to UAT and prod.** They still have this bug.
+4. **Delete one leftover branch: `diag/logs`.** I used it to read the Cloud Run logs, and my GitHub access can't delete branches. It only holds a temporary diagnostic workflow, which never runs unless something is pushed to that branch.
+
+---
+
+### 45. Tue 2026-11-10 08:21
+
+I want to update the 3rd page of local web presentation titled 'Build once. Promote the same bytes.' The look and feel is perfect. I just want the ability to click on each of the pipeline phases and animate some more in-depth details of that phase into view. For example, clicking on the 'CI' phases would expand it and give more detail on the specific tests that are executed. Create mockups of how that would look without developing any code first
+
+**Claude:**
+
+I added six mockups to the "RehearseAI interview summary" canvas, one for each pipeline phase in its expanded state (boards 3a–3f, in a new row under the original slides). No code has changed.
+
+**How it works:** click a phase card. The cards shrink into a compact row and the one you clicked lifts and glows while the others dim. The three facts at the bottom fold away, and a detail panel rises in their place with a pointer to the card. Inside the panel, the checks tick in one after another. Click another card (or ↑/↓) to switch phases. Esc or × closes the panel and the pipeline animation carries on. ← →, A and the number keys still work as they do now.
+
+**What each panel shows** (taken from the real workflows):
+- **CI:** both jobs, check by check: install, ESLint, strict typecheck, vitest, API e2e on real Postgres, build, config validation, rendering every release spec, actionlint/shellcheck, review-policy tests, the Trivy CRITICAL scan per image and the `review-policy` required check. The checks that stop Scenario A and Scenario B are tagged.
+- **Build once:** skip if already built, buildx, push, record the digest, ECR copy (dimmed until AWS is on), plus a digest table.
+- **gcp-dev:** render the spec, create the revision at 0%, startup check, smoke the candidate URL, 100%, annotate, with a 0% → 100% traffic bar.
+- **gcp-uat:** Promote reads what dev is serving, with a dev ↔ UAT "same digest" comparison.
+- **Second person** (amber): the GitHub `production` approval, with a mock "Review pending deployment" card.
+- **gcp-prod:** 10% canary for 2 minutes with 24 probes, automatic rollback on any 5xx, then 100%.
+
+A teal note beside the new row describes the motion. Tell me what to change, or say "build it" and I'll add it to `docs/presentation/`.
+
+---
+
+### 46. Tue 2026-11-10 08:29
+
+Go ahead and make the changes
+
+**Claude:**
+
+Done. The slide 3 phase details are built to match the mockups and are in **PR #9**. Only `docs/presentation/` changes, so nothing deploys.
+
+**How it works:**
+- **Open a phase:** click any stage card, or Tab to it and press Enter. The cards compact, the one you picked lifts, the three facts fold away, and the details panel rises with a pointer to the card. Its checks and steps tick in one at a time, and the traffic bars, canary probes and reviewer card animate.
+- **Move around:** ↑/↓ switch phases. Esc, × or clicking the open card again closes the panel. Changing slides also closes it.
+- **What hasn't changed:** ← →, A (approve) and 1–6 work as before. The image capsule keeps moving through the stages while a panel is open.
+
+**Checked:** in Chromium at 1440×900. Every panel fits on screen, the keyboard controls work, and there are no errors.
+
+**To try it:** merge PR #9, pull, and open `docs/presentation/index.html`. The README's key table lists the new controls.
+
+---
+
+### 47. Tue 2026-11-10 09:18
+
+The solution to problem #2 "The review queue" seems dependent on conventional commit structure being used and enforced. Is this correct? And if so, are we enforcing conventional commits in this project?
+
+**Claude:**
+
+No, it doesn't depend on conventional commits, and the project doesn't enforce them: there's no commitlint, hook or PR-title check.
+
+**What the review policy looks at** (`scripts/review-policy/classify.mjs`): only facts it reads from the PR's diff, never the commit messages or the PR title.
+- **Changed file paths:** any infra, deploy spec, workflow, migration, config schema or Dockerfile path makes the PR **high** risk. A PR that only touches docs is **low**.
+- **The actual `package.json` changes:** it compares the old and new version of each dependency and works out the semver bump itself. Patch or minor dev-tool updates and runtime patches are **low**; major updates are **high**. If anything other than versions changed in `package.json`, it's not treated as a dependency bump.
+- **Who opened it** (Renovate/Dependabot) and the `agent` label or branch, which affect who may approve. Bot approvals never count.
+- Everything else (application code) is **medium**.
+
+**Why it's built that way:** a commit message is a claim the author makes, and it's easy to get wrong or to game. If the policy trusted `chore:` or `docs:`, a Terraform change labelled `chore: tidy` would merge with no review. Reading the diff means the risk tier can't be talked down. That's worth saying in the interview.
+
+**Where conventional commits would still help:** readable history, generated changelogs and release notes. They'd be good hygiene, but they shouldn't decide risk. We deploy by commit SHA and image digest, not semver releases, so nothing here needs them today.
+
+If you'd like, I can add a lightweight PR-title check (squash merges make the PR title the commit message) as an informational status that doesn't block merges or affect the risk tier.
+
+---
+
+### 48. Tue 2026-11-10 09:23
+
+What/who determines and assigns a 'risk' level?
+
+**Claude:**
+
+No person assigns it. A GitHub Actions workflow decides it automatically from the PR's diff, using rules the platform team owns in code.
+
+**Who decides:** the `Review policy` workflow (`.github/workflows/review-policy.yml`).
+- It runs whenever a PR is opened, pushed to, labelled or unlabelled, or reviewed.
+- It calls `classify()` in `scripts/review-policy/classify.mjs` with the changed files, the before/after `package.json` contents, the author, the branch and the labels.
+- The rules are checked in order:
+  1. Any platform path → **high**
+  2. Docs only → **low**
+  3. Dependency-only changes → low, medium or high, depending on the semver bump it calculates
+  4. Anything else → **medium**
+
+**What it does with the answer:**
+- Sets exactly one `risk:` label, and the `agent` label when it applies.
+- Posts the `review-policy` commit status, which the repo ruleset makes a required check. It stays pending until that tier's requirement is met: none for low, one human non-author for medium, a code owner for high. Bot approvals never count.
+- Turns auto-merge on for low risk and off for anything else.
+- Every run leaves a short reason, e.g. "touches platform paths: infra/…".
+
+**Why nobody can game it:**
+- **The label is output, not input.** If someone adds `risk:low` by hand, the `labeled` event re-runs the policy, which removes it and puts the correct label back.
+- **A PR can't change the rules that judge it.** The workflow only checks out the default branch, never the PR's code, so editing `classify.mjs` in the PR doesn't affect that PR's verdict.
+- **Changing the rules is itself high risk.** `scripts/review-policy/` is in `HIGH_RISK_PATHS` and `CODEOWNERS`, so a code owner (the platform team) has to approve any change to them.
+- **It re-checks on every push.** A PR that started as docs-only and later touches `infra/` is reclassified as high and loses auto-merge.
+
+**Who could override it:** repo admins, through the `main` ruleset's bypass, and the bypass is logged. In a real team the platform team owns the rules and tunes them from data, such as which tier the PRs behind incidents were in.
+
+---
+
+### 49. Tue 2026-11-10 09:35
+
+Let's add a new slide to the presentation website directly after slide # 5 (The review queue) dedicated specifically to the review policy workflow. 
+
+* Keep the 'Problem 2' label at the top of this new slide.
+* Explain in detail when it runs, what it checks, and the 'risk' mappings
+
+*(Interrupted by the user and re-sent as the next prompt.)*
+
+---
+
+### 50. Tue 2026-11-10 09:35
+
+Let's add a new slide to the presentation website directly after slide # 5 (The review queue) dedicated specifically to the review policy workflow.
+
+* Keep the 'Problem 2' label at the top of this new slide.
+* Explain in detail when it runs, what it checks, and the 'risk' mappings
+
+Create a mockup before developing any code
+
+**Claude:**
+
+I added a mockup of the new slide to the "RehearseAI interview summary" canvas. It's the "5b · Review policy" board, placed right after "The review queue". I haven't changed any code.
+
+**What's on the slide:**
+- **Header:** the amber "Problem 2" label, then "The review policy: the diff decides the risk." and a one-line summary. The workflow and rules file paths sit in the corner.
+- **When it runs** (left): PR opened, reopened or ready for review; every push; a label added or removed (a hand-edited risk label gets put back); a review submitted or dismissed; and on-demand runs, which the demo uses.
+- **What it reads** (left): changed file paths, `package.json` before and after (it works out each semver bump itself), the author, branch and labels, and the reviews plus `CODEOWNERS` read from main.
+- **Risk mapping** (centre): six rules, checked top to bottom, first match wins. Each shows its risk and who must approve:
+  1. Platform path → high, a code owner
+  2. Docs only → low, auto-merges
+  3. A major dependency bump → high
+  4. Small dependency bumps or lockfile only → low
+  5. Any other dependency change → medium
+  6. Everything else, including agent fixes → medium, one human who isn't the author
+
+  A note below explains how mixed PRs land.
+- **What it does** (right): sets the label, posts the required `review-policy` status, turns auto-merge on or off, and gives a reason. Includes a small "on the PR" example.
+- **Guardrails** (amber strip): labels are output, not input; the rules run from main; the rules are themselves high risk; bot and author approvals never count.
+
+Slides after it renumber, so the demo becomes 7 / 7. A note beside the board describes the motion: the rows slide in one by one and the risk pills pop in. Say "build it", or tell me what to change.
+
+---
+
+### 51. Tue 2026-11-10 09:39
+
+I like it. Go ahead and add the new slide
+
+**Claude:**
+
+Done. The review policy slide is in **PR #10**, built from the mockup. It sits right after "The review queue" and keeps the amber "Problem 2" label.
+
+**On screen:** when it runs, what it reads, the six risk-mapping rules (first match wins) with who must approve, how mixed PRs land, what it does, and the guardrails strip.
+
+**Motion:** the cards fade up left to right, the mapping rows slide in one by one with their risk pills popping in, and the four guardrails light up amber last.
+
+**Other changes:** the demo is now slide 7, and the counters, number keys (1–7) and README are updated. Only `docs/presentation/` changed, so nothing deploys.
+
+**Checked:** in Chromium at 1440×900. Nothing overflows, moving to slide 7 still starts the demo countdown, and there are no errors.
+
+Merge PR #10 and pull to see it.
+
+---
+
+### 52. Tue 2026-11-10 09:48
+
+Let's add a new slide directly after slide #2 (Same image, same config, two clouds) that goes into detail on the singular digest/release.
+
+* Discuss what the single digest is, what it does, and maybe even show an example digest file
+
+Create a mockup before developing any code
+
+**Claude:**
+
+I added a mockup of the new slide to the "RehearseAI interview summary" canvas: the "2b · One digest, one release" board, which becomes slide 3, right after "Same image, same config, two clouds". I haven't changed any code.
+
+**What's on it:**
+- **Title:** "One digest. One release." Every deploy is one file: the image's digest, that environment's config and the revision's shape, rendered and shipped together.
+- **What a digest is:** a full example reference (`…/rehearse/api@sha256:<64 hex>`), labelled registry · @ · the SHA-256 of the image manifest. Change one byte and the digest changes. A tag like `:sha-1dc2fcf` is only a name pointing at a digest and can be moved; the digest can't move, because it is the content.
+- **Example release file:** a trimmed version of the real `rehearse-prod-api.yaml` that `render-release.mjs` produces. Six numbered markers point to:
+  1. The digest-pinned image (the renderer rejects anything else)
+  2. The version label that `/health` reports
+  3. The environment config from `gcp-prod.env.yaml`
+  4. A secret passed by name only
+  5. The probes (the "shape")
+  6. The new revision at 0% traffic next to the old one
+- **What's in it:** a notes panel explaining each marker.
+- **Same digest, every environment:** dev, UAT and prod chips (AWS dimmed for later); only the config file differs.
+- **What it does** (bottom strip): promote copies a pointer, never a rebuild; rollback is one traffic switch; two clouds hold the same bytes (ECR copy plus a digest check).
+
+The slides after it renumber, so the review policy becomes 7 and the demo 8. A motion note sits beside the board: the digest types itself out, and the file's markers light up in step with their notes. Say "build it", or tell me what to change.
+
+---
+
+### 53. Tue 2026-11-10 10:02
+
+Would GCP and AWS share the same release file?
+
+**Claude:**
+
+No. Each cloud gets its own release file, but both are rendered by the same script from the same commit, and they carry the same digest.
+
+| | GCP (Cloud Run) | AWS (ECS Fargate) |
+|---|---|---|
+| Template ("shape") | `deploy/cloudrun/api.yaml` → Knative Service YAML | `deploy/ecs/api.json` → ECS task definition JSON |
+| Config | `deploy/config/gcp-prod.env.yaml` | `deploy/config/aws-prod.env.yaml` |
+| Image | `…pkg.dev/…/rehearse/api@sha256:7c1e…` (Artifact Registry) | `…ecr…/rehearse/api@sha256:7c1e…` (ECR): same digest |
+| Secrets | Secret Manager: `rehearse-prod-database-url` | SSM: `/rehearse/prod/database-url` |
+| Identity | runtime service account | task role + `rehearse-prod-ecs-exec` |
+| Applied with | `gcloud run services replace` | `aws ecs register-task-definition` + service update |
+
+**What's shared:**
+- **The digest.** Release copies the image to ECR with `crane copy`, and the job fails unless both registries report the same digest. Promote to prod also checks that gcp-uat and aws-uat run the same version.
+- **The renderer and its rules:** digest-only images, config validated against this commit's schema, and the version label.
+- **The config values:** the two `prod` config files differ in exactly one line, `CLOUD_PROVIDER: gcp` vs `aws`.
+
+**Why not one file:** the two platforms speak different formats (a Knative Service vs an ECS task definition) and wire secrets, identity and networking differently. Forcing one file would mean inventing a third format and translating it anyway. The meaningful invariant is identical bytes plus identical config, and that's what the checks enforce.
+
+**For the new slide:** I'll show the GCP file as the example and add one line saying AWS gets the same parts in an ECS task definition with the same digest, plus a small GCP | AWS strip if you want it.
+
+---
+
+### 54. Tue 2026-11-10 10:05
+
+Can we highlight that in the new slide? Perhaps have two tabs in the same slide 'GCP', and 'AWS' that shows examples of both release files. Create a mockup and show me how that would look
+
+**Claude:**
+
+Yes. I updated the mockup on the canvas so the slide has **GCP | AWS tabs** above the release file. There are two boards: "2b" shows the slide with the GCP tab selected and "2c" with the AWS tab. I haven't changed any code.
+
+**GCP tab:** an excerpt of the Cloud Run release file, `rehearse-prod-api.yaml` (a Knative Service, applied with `gcloud run services replace`).
+
+**AWS tab:** an excerpt of the ECS task definition, `rehearse-prod-api.json`, taken from what `render-release.mjs` actually produces. It's registered with `aws ecs register-task-definition`, and the ECS circuit breaker rolls back a failed deploy.
+
+**How the two line up:**
+- Both files carry the same six numbered markers, so the notes panel on the right stays the same:
+  1. Digest
+  2. Version
+  3. Config
+  4. Secret reference
+  5. Shape
+  6. New revision / task definition
+- The notes now name both sides where they differ: Secret Manager vs SSM, Cloud Run revision vs task definition, and the image identical in Artifact Registry and ECR.
+- In each file, the `CLOUD_PROVIDER` line is flagged in amber as "the one config line that differs" (`gcp` vs `aws`), which makes the point visually.
+- The image digest is the same `sha256:7c1e…a94f` in both, and the "same digest" chips now include aws-uat and aws-prod (dimmed until AWS is enabled).
+
+**Motion** (described in a note): switching tabs cross-fades the file and replays the marker highlights.
+
+Say "build it" to make both the new slide and the tabs, or tell me what to change.
+
+---
+
+### 55. Tue 2026-11-10 10:08
+
+Build it
+
+**Claude:**
+
+Done. The new slide is in **PR #11**: "One digest. One release.", which is now slide 3, with **GCP | AWS tabs**. It's built from the 2b/2c mockups. Only `docs/presentation/` changes.
+
+**On the slide:**
+- **What a digest is:** the full digest types itself out, with labels showing registry · @ · the SHA-256 of the image manifest, plus the point that a tag can move but a digest can't.
+- **The release file:** the tabs switch between the Cloud Run YAML and the ECS task definition JSON. Both show the same digest and six numbered parts, and the markers light up in step with the notes on the right. Switching tabs replays them. The `CLOUD_PROVIDER` line is flagged in amber in both as the one config difference.
+- **Same digest, every environment:** chips for each environment, plus the three facts: promote copies a pointer, rollback is one traffic switch, and both clouds hold the same bytes.
+
+**Controls:** click a tab, or use ←/→ while a tab is focused (that doesn't change slides).
+
+**Renumbering:** the later slides move down one, to 8 in total, and the README's key table is updated. The slide code now finds slides by name rather than position, so the pipeline approval, phase details and demo countdown keep working wherever their slides sit.
+
+**Checked:** in Chromium at 1440×900. Both tabs fit with nothing clipped, the tab keys work, approving on slide 4 runs the canary, the demo starts on slide 8, and there are no errors.
+
+Merge PR #11 and pull to see it.
+
+---
+
+### 56. Tue 2026-11-10 12:03
+
+Ok now we can revisit the problem demos from earlier in our conversation. Summarize the execution steps for both of them one more time for me please
+
+**Claude:**
+
+Both demos run from the GitHub **Actions** tab (or `.\make demo -Mode …` / `.\make demo-b -Mode …`). Each run resets its own state, so any step can be repeated in any order. The full runbook is `docs/DEMO.md`.
+
+**Still to do once** (deferred earlier):
+1. Run `bootstrap\7-repo-rules.cmd` (Scenario B's rulesets and auto-merge).
+2. Re-run `6-grafana-dashboard.cmd` with an Admin token (creates the 5xx alert) and an Editor token (deploy markers).
+3. Delete the `diag/logs` branch.
+
+**5 minutes before the interview:** run Scenario A `mode=recover` and Scenario B `mode=cleanup`. Then open tabs for the Grafana dashboard (last 30 min, refresh 10s), Grafana Alerting, Actions, and the gcp-dev web app.
+
+### Problem 1: right config, wrong image (Demo: Scenario A, on gcp-dev)
+1. **Reproduce it**, `mode=legacy-order` (~9 min). The job pushes `SCORING_RUBRIC=rubric-c` to the running API with the old image, the old Terraform-first order.
+   - The **Rubrics** page warns that `rubric-c` is unknown to this release.
+   - Grafana shows a purple demo marker, API 5xx jumps to ~100%, the dashboard page errors for every tenant, and after ~2 minutes the **5xx ratio alert** fires.
+   - The job summary shows the timeline and OK/error counts; then `recover` redeploys the last good release automatically.
+2. **Same change, guarded**, `mode=guarded` (~5 min). Startup validation is on: the new revision never becomes ready, 100% of traffic stays on the old one, and every request succeeds. Point out the earlier gates too: CI config validation and the renderer reject `rubric-c` for this commit.
+3. **"Not the image we tested"**, `mode=rebuild-drift` (~5 min). It rebuilds the API from the same commit: the digest differs, while dev, UAT and prod all run one digest because promotion copies it.
+4. **The fix in four lines:** build once and deploy by digest; image + config + shape ship as one release; config validated in CI, at render and at startup; canary + alert + markers catch what's left.
+
+### Problem 2: the review queue (Demo: Scenario B)
+1. **Open the queue**, `mode=open`. It copies `main` to `demo/queue-base` and opens three PRs:
+   - Dev-tool dependency bump → `risk:low` → **merges itself** on green CI, a few minutes later.
+   - Agent-written fix + test (`agent` label) → `risk:medium` → waits for one human (bot approvals don't count).
+   - Infra change (UAT API made private) → `risk:high` → waits for a code owner.
+2. **Show the PR list:** risk labels, the `review-policy` status with its reason, CI running. Slide 7 explains the rules.
+3. **Approve the agent fix:** the policy re-runs, the status turns green, merge it. Approve the infra PR the same way (you're the code owner).
+4. **Talking points:** the policy is tested code that reads the diff, not commit messages or who wrote it. Humans review intent and risk; required checks handle mechanics. Compliance's second person sits on the production deploy.
+5. **Reset:** `mode=cleanup` closes the PRs and deletes the `demo/*` branches; `main` is never touched.
+
+**Wrap-up (1 min):** Rollback `cloud=gcp env=prod` moves traffic back in seconds; drift detection runs nightly.
+**No internet:** `.\make scenario-a` (10-second local version) and `.\make test-policy`.
+
+One correction: `docs/DEMO.md` still says the approve key works on slide 3; it's slide 4 now. Shall I fix that and do a dry run of both demos with you?
+
+---
+
+### 57. Tue 2026-11-10 12:59
+
+I've run '7-repo-rules.cmd' and '6-grafana-dashboard.cmd' successfully. Go ahead and update the DEMO.md file. When you're finished, we can walk through the practice runs together
+
+**Claude:**
+
+`DEMO.md` is updated, and the change has already merged itself.
+
+**What changed in DEMO.md:**
+- Slide numbers match the presentation: `A` approves on slide 4, and slide 7 explains the policy. There's also a one-line map of all 8 slides.
+- The one-time setup is marked done.
+- A new "day before" step: promote the latest release to UAT and prod (they still lack the two error fixes), then do one practice run.
+- A Scenario B talking point: the policy reads the diff, not commit messages, and a PR can't change its own verdict.
+
+**Your setup works.** I opened the change as PR #12. Because it only touched docs, the review policy labelled it `risk:low` ("low risk: no human review needed"), turned on auto-merge, and GitHub merged it once CI passed. No one reviewed it. That's Scenario B's low-risk lane working for real with your new rulesets.
+
+**Practice run, step 1: Scenario A, the incident.** My access can't start workflows, so you'll drive and I'll follow along.
+1. Open the Grafana dashboard (last 30 minutes, auto-refresh 10s) and the gcp-dev Rubrics page.
+2. In GitHub → **Actions** → **Demo: Scenario A** → **Run workflow**, choose `mode=legacy-order` and keep the defaults.
+3. Tell me when it's started. I'll tell you what to expect at each minute and what to say while it runs. It takes about 9 minutes, including the automatic recovery.
+
+After that we'll do `guarded`, then `rebuild-drift`, then Scenario B.
