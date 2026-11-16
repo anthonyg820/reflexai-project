@@ -49,6 +49,9 @@ export interface RubricDefinition {
 export const EMPATHY = ["understand", "sorry", "hear you", "that sounds", "makes sense", "feel", "thank you for"];
 export const REFLECTIONS = ["it sounds like", "what i'm hearing", "so you're saying", "you feel", "you're feeling"];
 
+// Phones and some keyboards type curly apostrophes ("I’m"), which never matched
+// phrases like "what i'm hearing". Normalise them before matching.
+const normalise = (text: string) => text.replace(/[\u2018\u2019]/g, "'");
 const countHits = (text: string, phrases: string[]) => phrases.filter((p) => text.includes(p)).length;
 const words = (m: string) => m.trim().split(/\s+/).filter(Boolean).length;
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
@@ -75,7 +78,7 @@ function count(signal: Signal, lower: string[]): number {
 
 export function scoreWith(rubric: Pick<RubricDefinition, "base" | "signals">, { traineeMessages }: Transcript): number {
   if (traineeMessages.length === 0) return 0;
-  const lower = traineeMessages.map((m) => m.toLowerCase());
+  const lower = traineeMessages.map((m) => normalise(m.toLowerCase()));
   return clamp(rubric.signals.reduce((total, s) => total + s.points * count(s, lower), rubric.base));
 }
 
